@@ -44,6 +44,8 @@ export function BaseLayout(
                                 Profile
                             </Link>
                         )}
+                        {loggedInUser && <Link href="/auth/logout">Logout
+                        </Link>}
                         {!loggedInUser && <Link href="/login">Login</Link>}
                         {!loggedInUser && (
                             <Link href="/register">

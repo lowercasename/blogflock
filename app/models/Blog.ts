@@ -52,9 +52,14 @@ export const getBlogByUrl = (url: string): Blog | null => {
     )?.[0];
 };
 
+// TODO: DRY this (cf. main.ts)
 const sendBlogToQueue = async (blog: Blog): Promise<void> => {
     // Send a message to the feed queue with the new feed to fetch its posts
-    const connection = await connect();
+    const connection = await connect({
+        hostname: Deno.env.get("RABBITMQ_HOST") || "localhost",
+        username: Deno.env.get("RABBITMQ_USER") || "guest",
+        password: Deno.env.get("RABBITMQ_PASSWORD") || "guest",
+    });
     const channel = await connection.openChannel();
     await channel.declareQueue({
         queue: "feed_queue",

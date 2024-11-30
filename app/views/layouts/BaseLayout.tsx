@@ -14,15 +14,22 @@ export function BaseLayout(
         <html>
             <head>
                 <title>BlogFlock</title>
+                <meta
+                    name="viewport"
+                    content="width=device-width, initial-scale=1.0"
+                />
                 <script src="https://unpkg.com/htmx.org@2.0.3"></script>
                 <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js">
                 </script>
                 <script src="//unpkg.com/alpinejs" defer></script>
                 <link rel="stylesheet" href="/static/style.css" />
             </head>
-            <body className="bg-stone-100 flex flex-col min-h-screen" hx-boost>
+            <body
+                className="bg-stone-100 flex flex-col min-h-screen font-rethink-sans"
+                hx-boost
+            >
                 <header className="flex items-center justify-between shadow-sharp rounded-full bg-white m-4 px-6 py-4">
-                    <h1 className="text-xl font-semibold flex items-center gap-2">
+                    <h1 className="text-xl font-semibold flex items-center gap-2 text-orange-900">
                         <img
                             src="/static/birds.svg"
                             class="inline-block size-8"
@@ -49,11 +56,16 @@ export function BaseLayout(
                     {children}
                 </main>
                 <footer className="border-t border-stone-300 bg-stone-50 p-4 w-full text-center mt-4">
-                    Made with ️{" "}
+                    Yet another Thing made with ️{" "}
                     <div class="size-4 inline-flex relative top-0.5">
                         <HeartIcon />
                     </div>{" "}
-                    by <Link href="https://raphael.computer">Raphael Kabo</Link>
+                    by{" "}
+                    <Link href="https://raphael.computer">Raphael Kabo</Link>.
+                    {" "}
+                    <Link href="https://github.com/lowercasename/blogflock">
+                        Source code
+                    </Link>.
                 </footer>
             </body>
         </html>

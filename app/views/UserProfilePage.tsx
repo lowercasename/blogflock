@@ -67,7 +67,7 @@ export function UserProfilePage(
                     {user.bio
                         ? <p class="text-gray-600">{user.bio}</p>
                         : (
-                            <p class="text-sm text-gray-500">
+                            <p class="text-gray-500">
                                 This person hasn't written anything about
                                 themselves yet.
                             </p>

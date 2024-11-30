@@ -28,7 +28,7 @@ export function BaseLayout(
                 className="bg-stone-100 flex flex-col min-h-screen font-rethink-sans"
                 hx-boost
             >
-                <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between shadow-sharp rounded-full bg-white m-4 px-6 py-4">
+                <header className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between shadow-sharp rounded-full bg-white m-4 px-6 py-4">
                     <h1 className="text-xl font-semibold flex items-center gap-2 text-orange-900">
                         <img
                             src="/static/birds.svg"
@@ -36,7 +36,7 @@ export function BaseLayout(
                         />
                         <a href="/">BlogFlock</a>
                     </h1>
-                    <nav className="flex flex-col sm:flex-row gap-4">
+                    <nav className="flex gap-4">
                         {loggedInUser && <Link href="/">Home</Link>}
                         {loggedInUser && <Link href="/lists">Lists</Link>}
                         {loggedInUser && (

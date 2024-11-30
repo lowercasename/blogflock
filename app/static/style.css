@@ -985,6 +985,18 @@ video {
   .sm\:grid-cols-\[3fr_1fr\]{
     grid-template-columns: 3fr 1fr;
   }
+
+  .sm\:flex-row{
+    flex-direction: row;
+  }
+
+  .sm\:items-center{
+    align-items: center;
+  }
+
+  .sm\:justify-between{
+    justify-content: space-between;
+  }
 }
 
 @media (min-width: 768px){

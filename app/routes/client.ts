@@ -141,7 +141,6 @@ app.get("/", async (c: Context) => {
             0,
         );
         const randomLists = getRandomLists(5);
-        console.log(posts);
         return c.html(
             HomeFeedPage({ loggedInUser, posts, hasMore, randomLists }),
         );

@@ -201,7 +201,9 @@ app.post(
             {
                 path: "/",
                 secure: true,
-                domain: "localhost",
+                domain: Deno.env.get("DENO_ENV") === "development"
+                    ? "localhost"
+                    : Deno.env.get("APP_DOMAIN"),
                 httpOnly: true,
                 maxAge: cookieMaxAge,
                 expires: new Date(Date.now() + cookieMaxAge),

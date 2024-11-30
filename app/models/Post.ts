@@ -189,10 +189,20 @@ export const getPostsForListsIds = (
     const rows = db.queryEntries(
         `${query} WHERE lb.listId IN (${
             listIds.join(",")
-        }) ORDER BY p.publishedAt DESC LIMIT ?+1 OFFSET ?`,
-        [limit, offset],
+        }) ORDER BY p.publishedAt DESC LIMIT ? OFFSET ?`,
+        [limit + 1, offset],
     );
-    return [buildPostsResponse(rows.slice(0, -1)) || [], rows.length > limit];
+    const posts = buildPostsResponse(rows);
+    if (!posts) {
+        return [[], false];
+    }
+    if (posts.length <= limit) {
+        return [posts, false];
+    }
+    const hasMore = posts.length > limit;
+    const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
+
+    return [postsToReturn, hasMore];
 };
 
 export const getPostsForFollowedListsByUserId = (
@@ -206,9 +216,16 @@ export const getPostsForFollowedListsByUserId = (
         JOIN list_followers lf ON lb.listId = lf.listId
         WHERE lf.userId = ?
         ORDER BY p.publishedAt DESC
-        LIMIT ?+1 OFFSET ?
+        LIMIT ? OFFSET ?
     `,
-        [userId, limit, offset],
+        [userId, limit + 1, offset],
     );
-    return [buildPostsResponse(rows.slice(0, -1)) || [], rows.length > limit];
+    const posts = buildPostsResponse(rows);
+    if (!posts) {
+        return [[], false];
+    }
+    const hasMore = posts.length > limit;
+    const postsToReturn = hasMore ? posts.slice(0, limit) : posts;
+
+    return [postsToReturn, hasMore];
 };

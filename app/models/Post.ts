@@ -2,7 +2,7 @@ import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import { RowObject } from "https://deno.land/x/sqlite@v3.8/mod.ts";
 import { db } from "../lib/db.ts";
 import joinjs from "npm:join-js";
-import { excerpt } from "../lib/text.ts";
+import { excerpt, hash } from "../lib/text.ts";
 import { ListBlogWithRelationsSchema } from "./ListBlog.ts";
 
 export const PostSchema = z.object({
@@ -34,6 +34,14 @@ export type UpdatePost = Pick<
     "title" | "content" | "url" | "publishedAt" | "guid"
 >;
 
+export const generatePostGuid = async (
+    post: { guid?: string; url?: string; title: string; publishedAt: Date },
+): Promise<string> => {
+    // If there isn't a GUID, try the URL, and if that doesn't exist, hash the title and date
+    return post.guid || post.url ||
+        (await hash(post.title + post.publishedAt.getTime()));
+};
+
 export const getPostById = (id: number): Post | null => {
     return db.queryEntries<Post>(`SELECT * FROM posts WHERE id = ?`, [id])?.[0];
 };
@@ -43,7 +51,7 @@ export const getPostByGuid = (guid: string): Post | null => {
         ?.[0];
 };
 
-export const createPost = (post: CreatePost): Post => {
+export const createPost = async (post: CreatePost): Promise<Post> => {
     db.query(
         `INSERT INTO posts (blogId, title, content, url, publishedAt, guid, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
@@ -52,7 +60,7 @@ export const createPost = (post: CreatePost): Post => {
             post.content,
             post.url,
             post.publishedAt,
-            post.guid,
+            await generatePostGuid(post),
             new Date().toISOString(),
         ],
     );

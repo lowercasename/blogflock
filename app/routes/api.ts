@@ -1,5 +1,5 @@
 import { Context, Hono } from "hono";
-import { getBlogs, updateBlog, updateBlogLastFetchedAt } from "../models/Blog.ts";
+import { getBlogs, updateBlogLastFetchedAt } from "../models/Blog.ts";
 import { tokenAuthMiddleware } from "../lib/auth.ts";
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import { validateRequest } from "../lib/validateRequest.ts";
@@ -21,24 +21,31 @@ app.get("/blogs", (c: Context) => {
     return c.json(blogs);
 });
 
-app.post("/posts", tokenAuthMiddleware, validateRequest(createPostSchema, { redirectTo: "/api/posts", parseBody: true }), (c: Context) => {
-    const json = c.get("formData");
-    const existingPost = getPostByGuid(json.guid);
-    if (existingPost) {
-        console.log('Post already exists');
+app.post(
+    "/posts",
+    tokenAuthMiddleware,
+    validateRequest(createPostSchema, {
+        redirectTo: "/api/posts",
+        parseBody: true,
+    }),
+    async (c: Context) => {
+        const json = c.get("formData");
+        const existingPost = getPostByGuid(json.guid);
+        if (existingPost) {
+            updateBlogLastFetchedAt(Number(json.blogId));
+            return c.json({ message: "Post already exists" });
+        }
+        const newPost = await createPost({
+            blogId: Number(json.blogId),
+            title: json.title,
+            content: json.content,
+            url: json.url,
+            publishedAt: new Date(json.publishedAt),
+            guid: json.guid,
+        });
         updateBlogLastFetchedAt(Number(json.blogId));
-        return c.json({ message: "Post already exists" });
-    }
-    const newPost = createPost({
-        blogId: Number(json.blogId),
-        title: json.title,
-        content: json.content,
-        url: json.url,
-        publishedAt: new Date(json.publishedAt),
-        guid: json.guid,
-    })
-    updateBlogLastFetchedAt(Number(json.blogId));
-    return c.json(newPost);
-});
+        return c.json(newPost);
+    },
+);
 
 export default app;

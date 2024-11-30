@@ -1,5 +1,7 @@
 import { DOMParser } from "jsr:@b-fuze/deno-dom";
 import * as ammonia from "https://deno.land/x/ammonia@0.3.1/mod.ts";
+import { encodeHex } from "jsr:@std/encoding/hex";
+
 await ammonia.init();
 
 export const excerpt = (html: string, words: number): string => {
@@ -32,4 +34,11 @@ export function pluralize(count: number, single: string, plural?: string) {
         return plural;
     }
     return `${single}${count === 1 ? "" : "s"}`;
-};
+}
+
+export async function hash(str: string): Promise<string> {
+    const strBuffer = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", strBuffer);
+    const hash = encodeHex(hashBuffer);
+    return hash;
+}

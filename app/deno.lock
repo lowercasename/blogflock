@@ -5,6 +5,7 @@
     "jsr:@hono/hono@^4.6.10": "4.6.10",
     "jsr:@maxim-mazurok/sax-ts@1.2.13": "1.2.13",
     "jsr:@std/bytes@^1.0.2": "1.0.4",
+    "jsr:@std/encoding@*": "1.0.5",
     "jsr:@std/io@*": "0.225.0",
     "jsr:@std/io@0.224.9": "0.224.9",
     "npm:autoprefixer@^10.4.20": "10.4.20_postcss@8.4.49",
@@ -30,6 +31,9 @@
     },
     "@std/bytes@1.0.4": {
       "integrity": "11a0debe522707c95c7b7ef89b478c13fb1583a7cfb9a85674cd2cc2e3a28abc"
+    },
+    "@std/encoding@1.0.5": {
+      "integrity": "ecf363d4fc25bd85bd915ff6733a7e79b67e0e7806334af15f4645c569fefc04"
     },
     "@std/io@0.224.9": {
       "integrity": "4414664b6926f665102e73c969cfda06d2c4c59bd5d0c603fd4f1b1c840d6ee3",

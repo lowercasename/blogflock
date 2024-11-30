@@ -5,7 +5,7 @@ import lists from "./routes/lists.ts";
 import { initDB } from "./lib/db.ts";
 import api from "./routes/api.ts";
 import { connect } from "https://deno.land/x/amqp/mod.ts";
-import { createPost, getPostByGuid } from "./models/Post.ts";
+import { createPost, generatePostGuid, getPostByGuid } from "./models/Post.ts";
 import { updateBlogLastFetchedAt } from "./models/Blog.ts";
 import { User } from "./models/User.ts";
 import posts from "./routes/posts.ts";
@@ -43,7 +43,13 @@ try {
         async (args, _props, data) => {
             const body = JSON.parse(new TextDecoder().decode(data));
             // Save the post to the database
-            const existingPost = getPostByGuid(body.guid);
+            const probablyGuid = await generatePostGuid({
+                guid: body.guid,
+                url: body.url,
+                title: body.title,
+                publishedAt: new Date(body.publishedAt),
+            });
+            const existingPost = getPostByGuid(probablyGuid);
             if (existingPost) {
                 updateBlogLastFetchedAt(Number(body.blogId));
                 console.log(
@@ -52,7 +58,7 @@ try {
                 await channel.ack({ deliveryTag: args.deliveryTag });
                 return;
             }
-            createPost({
+            await createPost({
                 blogId: Number(body.blogId),
                 title: body.title,
                 content: body.content,

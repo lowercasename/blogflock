@@ -72,7 +72,6 @@ app.post(
         const formData = c.get("formData");
         const user = c.get("user");
         const validationErrors = c.get("flash");
-        console.log(formData, user, validationErrors);
 
         if (validationErrors) {
             return c.html(
@@ -155,7 +154,6 @@ app.patch(
                 }),
             );
         }
-        console.log(updatedList);
         return c.html(
             ListMeta({
                 list: updatedList,
@@ -263,7 +261,6 @@ app.patch(
     jwtAuthMiddleware,
     validateRequest(updateBlogInListSchema, { parseBody: true }),
     (c: Context) => {
-        console.log("PATCH /lists/:hashId/blogs/:blogHashId");
         const user = c.get("user");
         const hashId = c.req.param("hashId");
         const blogHashId = c.req.param("blogHashId");
@@ -353,7 +350,6 @@ app.patch(
 
 // DELETE /lists/:hashId/blogs/:blogHashId - Remove a blog from a list
 app.delete("/:hashId/blogs/:blogHashId", jwtAuthMiddleware, (c: Context) => {
-    console.log("DELETE /lists/:hashId/blogs/:blogHashId");
     const user = c.get("user");
     const hashId = c.req.param("hashId");
     const blogHashId = c.req.param("blogHashId");
@@ -429,14 +425,14 @@ app.get(
                     return;
                 }
                 addWsClient(hashId, ws.raw);
-                console.log("Connection opened");
+                console.log(`[WS] Connection opened for ${hashId}`);
             },
             onClose: (_: Event, ws: WSContext<WebSocket>) => {
                 if (ws.raw?.readyState !== WebSocket.OPEN) {
                     return;
                 }
                 removeWsClient(hashId, ws.raw);
-                console.log("Connection closed");
+                console.log(`[WS] Connection closed for ${hashId}`);
             },
         };
     }),

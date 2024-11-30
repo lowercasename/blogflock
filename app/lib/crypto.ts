@@ -7,5 +7,3 @@ export const generateOTP = () => {
     }
     return otp;
 };
-
-console.log(generateOTP());

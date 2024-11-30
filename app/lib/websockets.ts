@@ -1,8 +1,7 @@
-// A map of list hashIds to a set of WebSocket clients
-
 import { List } from "../models/List.ts";
 import { NewPostsNotification } from "../views/components/PostFeed.tsx";
 
+// A map of list hashIds to a set of WebSocket clients
 // (one hashId can have multiple clients connected to it)
 export const wsClientsMap = new Map<string, Set<WebSocket>>();
 
@@ -12,25 +11,26 @@ export const wsClientsMap = new Map<string, Set<WebSocket>>();
 export function broadcastNewPost(
     lists: List[],
 ) {
-    // console.log(`Broadcasting to ${wsClientsArray.length} sets of clients`);
     lists.forEach((list) => {
         const wsClientsSet = wsClientsMap.get(list.hashId);
         if (!wsClientsSet) {
             return;
         }
-        console.log(`Broadcasting to ${wsClientsSet.size} clients`);
+        console.log(`[WS] Broadcasting to ${wsClientsSet.size} clients`);
         wsClientsSet.forEach((ws) => {
             if (ws.readyState === WebSocket.OPEN) {
                 try {
-                    ws.send(NewPostsNotification({ list, display: true }).toString());
-                    console.log("Message sent successfully");
+                    ws.send(
+                        NewPostsNotification({ list, display: true })
+                            .toString(),
+                    );
                 } catch (error) {
-                    console.error("Failed to send message:", error);
+                    console.error("[WS] Failed to send message:", error);
                     wsClientsSet.delete(ws);
                 }
             } else {
                 console.log(
-                    `Removing client with readyState: ${ws.readyState}`,
+                    `[WS] Removing client with readyState: ${ws.readyState}`,
                 );
                 wsClientsSet.delete(ws);
             }

@@ -1,7 +1,5 @@
 import Mailgun from "https://deno.land/x/mailgun@v1.3.0/index.ts";
 
-console.log(Deno.env.get("MAILGUN_API_KEY"));
-
 const mailgun = new Mailgun({
     key: Deno.env.get("MAILGUN_API_KEY")!,
     region: "eu",

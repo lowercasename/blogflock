@@ -154,7 +154,6 @@ app.post(
     async (c: Context) => {
         const data = c.get("formData");
         const validationErrors = c.get("flash");
-        console.log(data, validationErrors);
 
         if (validationErrors) {
             return c.html(
@@ -170,7 +169,6 @@ app.post(
             email: data.email,
             password: data.password,
         });
-        console.log(user);
 
         if (!user) {
             return c.html(

@@ -4,11 +4,11 @@
     "hono": "jsr:@hono/hono@^4.6.10",
     "jsr:@std/io": "jsr:@std/io@0.224.9",
     "postcss": "npm:postcss@^8.4.49",
-    "tailwindcss": "npm:tailwindcss@^3.4.15",
-    "vite": "npm:vite@^6.0.1"
+    "tailwindcss": "npm:tailwindcss@^3.4.15"
   },
   "tasks": {
-    "build": "deno run -A --unstable npm:vite build",
+    "build:tailwind": "deno run -A npm:tailwindcss -i ./style.css -o ./static/style.css",
+    "start": "deno run -A --env-file main.ts",
     "dev:hono": "deno run -A --env-file --unstable --watch main.ts",
     "dev:tailwind": "deno run -A npm:tailwindcss -i ./style.css -o ./static/style.css --watch",
     "dev": "deno task dev:hono & deno task dev:tailwind"

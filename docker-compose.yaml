@@ -1,0 +1,78 @@
+services:
+  app:
+    container_name: blogflock-app
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    ports:
+      - "8021:8021"
+    env_file:
+      - .env
+    # environment:
+    #   - RABBITMQ_USER=${RABBITMQ_USER}
+    #   - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    #   - RABBITMQ_HOST=rabbitmq
+    #   - RABBITMQ_PORT=5672
+    volumes:
+      - ./app:/app
+      - ./db:/db
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  feed-worker:
+    container_name: blogflock-feed-worker
+    build:
+      context: ./feed-scraper
+      dockerfile: Dockerfile.worker
+    volumes:
+      - ./.env:/app/.env
+    environment:
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  feed-sender:
+    container_name: blogflock-feed-sender
+    build:
+      context: ./feed-scraper
+      dockerfile: Dockerfile.sender
+    volumes:
+      - ./.env:/app/.env
+    environment:
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - API_URL=${API_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      app:
+        condition: service_started
+    restart: unless-stopped
+
+  rabbitmq:
+    container_name: blogflock-rabbitmq
+    image: rabbitmq:4-management-alpine
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  rabbitmq_data:

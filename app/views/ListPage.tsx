@@ -91,8 +91,6 @@ export function ListMeta(
           Created by <UserBadge user={list.user} />
         </div>
 
-        <h2 class="text-lg font-semibold text-orange-800 mb-2">Followed by</h2>
-
         {loggedInUser
           ? list.listFollowers?.some((lf) => lf.userId === loggedInUser.id)
             ? (

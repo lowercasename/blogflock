@@ -180,7 +180,7 @@ export const getAllListsByFilter = (
 ): [List[], boolean] => {
     const rows = db.queryEntries(
         `${query} WHERE l.name LIKE ? OR l.description LIKE ?
-        ORDER BY l.createdAt DESC`,
+        ORDER BY blog_lastFetchedAt DESC`,
         [`%${filter}%`, `%${filter}%`],
     );
     const lists = buildListsResponse(rows);

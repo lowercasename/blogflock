@@ -9,6 +9,7 @@ import { Button, IconButtonLink } from "./components/Button.tsx";
 import { Input } from "./components/Input.tsx";
 import { FlashMessage } from "./components/FlashMessage.tsx";
 import { Flash } from "../lib/flash.ts";
+import { UserBadge } from "./components/UserBadge.tsx";
 
 export function CreateListForm(
     { messages, formData }: {
@@ -55,7 +56,7 @@ export function UserProfilePage(
         <BaseLayout loggedInUser={loggedInUser}>
             <div class="flex flex-col gap-4 w-full max-w-[1200px] mx-auto px-4">
                 <Card
-                    title={user.username}
+                    title={<UserBadge user={user} size="md" />}
                     controls={isOwner
                         ? (
                             <IconButtonLink icon={<CogIcon />} href="/settings">

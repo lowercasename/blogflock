@@ -29,11 +29,7 @@ export const Post = ({ post }: { post: PostType }) => (
                 <Link href={`/list/${post.listBlog.list.hashId}`}>
                     {post.listBlog.list.name}
                 </Link>{" "}
-                (<Link
-                    href={`/user/${post.listBlog.list.user.username}`}
-                >
-                    {post.listBlog.list.user.username}
-                </Link>)
+                <UserBadge user={post.listBlog.list.user} />
             </header>
             <main class="text-gray-900">{post.shortContent}</main>
         </article>

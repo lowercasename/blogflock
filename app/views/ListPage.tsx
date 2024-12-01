@@ -5,7 +5,6 @@ import { Post as PostType } from "../models/Post.ts";
 import { PostFeed } from "./components/PostFeed.tsx";
 import { FlashMessage } from "./components/FlashMessage.tsx";
 import { Flash } from "../lib/flash.ts";
-import { UserLink } from "./components/UserLink.tsx";
 import { Card } from "./components/Card.tsx";
 import { Stack } from "./components/Stack.tsx";
 import { Link } from "./components/Link.tsx";
@@ -17,6 +16,7 @@ import {
   PlusCircleIcon,
 } from "./components/Icons.tsx";
 import { Input, Textarea } from "./components/Input.tsx";
+import { UserBadge } from "./components/UserBadge.tsx";
 
 export function AddBlogForm({
   list,
@@ -86,7 +86,7 @@ export function ListMeta(
         <p x-show="!editing" class="text-gray-600">{list.description}</p>
         <EditListForm list={list} messages={messages} formData={formData} />
         <div>
-          Created by <UserLink user={list.user} />
+          Created by <UserBadge user={list.user} />
         </div>
 
         {list.listFollowers?.some((lf) => lf.userId === user.id)

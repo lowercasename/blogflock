@@ -2,7 +2,7 @@ import { pluralize } from "../../lib/text.ts";
 import { List } from "../../models/List.ts";
 import { ScrollIcon } from "./Icons.tsx";
 import { Link } from "./Link.tsx";
-import { UserLink } from "./UserLink.tsx";
+import { UserBadge } from "./UserBadge.tsx";
 
 export const ListItem = ({ list }: { list: List }) => (
     <div className="flex flex-col gap-1">
@@ -11,8 +11,11 @@ export const ListItem = ({ list }: { list: List }) => (
                 <div class="inline-flex size-4 mr-1 relative top-0.5">
                     <ScrollIcon />
                 </div>
-                <Link href={`/list/${list.hashId}`}>{list.name}</Link>{" "}
-                (<UserLink user={list.user} />)
+                <Link href={`/list/${list.hashId}`}>{list.name}</Link>
+                {" "}
+            </div>
+            <div>
+                <UserBadge user={list.user} />
             </div>
             <div class="text-sm font-semibold text-gray-800">
                 {list.listBlogs?.length}{" "}

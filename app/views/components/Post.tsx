@@ -2,6 +2,24 @@ import { Post as PostType } from "../../models/Post.ts";
 import { Card } from "./Card.tsx";
 import { ScrollIcon } from "./Icons.tsx";
 import { Link } from "./Link.tsx";
+import { UserBadge } from "./UserBadge.tsx";
+
+const PostContent = ({ post }: { post: PostType }) => {
+    if (post.shortContent.type === "text") {
+        return <p class="text-gray-900">{post.shortContent.content}</p>;
+    } else {
+        return (
+            <>
+                <img
+                    src={post.shortContent.image || ""}
+                    alt={post.shortContent.alt || post.title}
+                    class="w-full"
+                />
+                <p class="text-gray-700">{post.shortContent.content}</p>
+            </>
+        );
+    }
+};
 
 export const Post = ({ post }: { post: PostType }) => (
     <Card
@@ -10,14 +28,17 @@ export const Post = ({ post }: { post: PostType }) => (
     >
         <article class="flex flex-col gap-2">
             <header class="pb-2 mb-1 border-b border-gray-200">
-                <span class="font-semibold mr-2 text-gray-600">
+                <a
+                    class="font-semibold mr-2 text-gray-600 hover:underline"
+                    href={post.listBlog.blog.siteUrl || "#"}
+                >
                     {post.listBlog.title}
-                </span>
+                </a>
                 <time
-                    datetime={post.createdAt.toISOString()}
+                    datetime={post.publishedAt.toISOString()}
                     class="text-gray-500 tracking-tight mr-2"
                 >
-                    {post.createdAt.toLocaleDateString("en-GB", {
+                    {post.publishedAt.toLocaleDateString("en-GB", {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -31,7 +52,9 @@ export const Post = ({ post }: { post: PostType }) => (
                 </Link>{" "}
                 <UserBadge user={post.listBlog.list.user} />
             </header>
-            <main class="text-gray-900">{post.shortContent}</main>
+            <main>
+                <PostContent post={post} />
+            </main>
         </article>
     </Card>
 );

@@ -42,6 +42,24 @@ export const generatePostGuid = async (
         (await hash(post.title + post.publishedAt.getTime()));
 };
 
+export const sanitizePostPublishedAt = (v?: string | Date | null): string => {
+    if (!v) {
+        return new Date().toISOString();
+    }
+    let publishedAt: string;
+    try {
+        const date = new Date(v);
+        if (isNaN(date.getTime())) {
+            publishedAt = new Date().toISOString();
+        } else {
+            publishedAt = date.toISOString();
+        }
+    } catch {
+        publishedAt = new Date().toISOString();
+    }
+    return publishedAt;
+};
+
 export const getPostById = (id: number): Post | null => {
     return db.queryEntries<Post>(`SELECT * FROM posts WHERE id = ?`, [id])?.[0];
 };
@@ -59,7 +77,7 @@ export const createPost = async (post: CreatePost): Promise<Post> => {
             post.title,
             post.content,
             post.url,
-            post.publishedAt,
+            sanitizePostPublishedAt(post.publishedAt),
             await generatePostGuid(post),
             new Date().toISOString(),
         ],

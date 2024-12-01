@@ -36,7 +36,12 @@ export const newPasswordSchema = z.string().min(8, {
 }).max(120, { message: "Password must be at most 120 characters long" });
 export const newUsernameSchema = z.string().min(3, {
     message: "Username must be at least 3 characters long",
-}).trim();
+}).max(50, { message: "Username must be at most 50 characters long" })
+    .regex(/^[a-zA-Z0-9_-]*$/, {
+        message:
+            "Username must only contain letters, numbers, underscores and dashes",
+    })
+    .trim();
 const tokenSchema = z.string();
 
 const loginSchema = z.object({

@@ -39,7 +39,8 @@ import { ListSearchPage } from "../views/ListSearchPage.tsx";
 
 const app = new Hono();
 
-export const renderListPage = (c: Context, page: number = 1) => {
+export const renderListPage = async (c: Context, page: number = 1) => {
+    const loggedInUser = await getAuthenticatedUser(c);
     const hashId = c.req.param("hashId");
 
     // Fetch list by hashId
@@ -54,7 +55,7 @@ export const renderListPage = (c: Context, page: number = 1) => {
     }
 
     return c.html(ListPage({
-        user: c.get("user"),
+        loggedInUser,
         list,
         posts,
         hasMore,
@@ -114,7 +115,6 @@ app.get("/reset-password", redirectIfAuthenticated, flash, (c: Context) => {
 
 app.get(
     "/list/:hashId",
-    jwtAuthMiddleware,
     flash,
     (c: Context) => renderListPage(c, 1),
 );
@@ -134,18 +134,18 @@ app.get("/user/:username", jwtAuthMiddleware, (c: Context) => {
 
 app.get("/", async (c: Context) => {
     const loggedInUser = await getAuthenticatedUser(c);
+    const randomLists = getRandomLists(5);
     if (loggedInUser) {
         const [posts, hasMore] = getPostsForFollowedListsByUserId(
             loggedInUser.id,
             10,
             0,
         );
-        const randomLists = getRandomLists(5);
         return c.html(
             HomeFeedPage({ loggedInUser, posts, hasMore, randomLists }),
         );
     }
-    return c.html(WelcomePage());
+    return c.html(WelcomePage({ randomLists }));
 });
 
 app.get("/settings", jwtAuthMiddleware, (c: Context) => {

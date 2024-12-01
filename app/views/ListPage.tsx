@@ -57,12 +57,12 @@ export function AddBlogForm({
 }
 
 export function ListMeta(
-  { list, isOwner, messages, formData, user }: {
+  { list, isOwner, messages, formData, loggedInUser }: {
     list: List;
     isOwner: boolean;
     messages?: Flash[];
     formData?: Record<string, string>;
-    user: User;
+    loggedInUser: User | null;
   },
 ) {
   return (
@@ -84,32 +84,38 @@ export function ListMeta(
     >
       <div class="flex flex-col gap-4">
         <p x-show="!editing" class="text-gray-600">{list.description}</p>
-        <EditListForm list={list} messages={messages} formData={formData} />
+        {isOwner && (
+          <EditListForm list={list} messages={messages} formData={formData} />
+        )}
         <div>
           Created by <UserBadge user={list.user} />
         </div>
 
-        {list.listFollowers?.some((lf) => lf.userId === user.id)
-          ? (
-            <Button
-              hx-delete={`/lists/${list.hashId}/followers`}
-              hx-swap="outerHTML"
-              hx-target="body"
-              icon={<MinusCircleIcon />}
-            >
-              Unfollow
-            </Button>
-          )
-          : (
-            <Button
-              hx-post={`/lists/${list.hashId}/followers`}
-              hx-swap="outerHTML"
-              hx-target="body"
-              icon={<PlusCircleIcon />}
-            >
-              Follow
-            </Button>
-          )}
+        <h2 class="text-lg font-semibold text-orange-800 mb-2">Followed by</h2>
+
+        {loggedInUser
+          ? list.listFollowers?.some((lf) => lf.userId === loggedInUser.id)
+            ? (
+              <Button
+                hx-delete={`/lists/${list.hashId}/followers`}
+                hx-swap="outerHTML"
+                hx-target="body"
+                icon={<MinusCircleIcon />}
+              >
+                Unfollow
+              </Button>
+            )
+            : (
+              <Button
+                hx-post={`/lists/${list.hashId}/followers`}
+                hx-swap="outerHTML"
+                hx-target="body"
+                icon={<PlusCircleIcon />}
+              >
+                Follow
+              </Button>
+            )
+          : null}
 
         <BlogList list={list} isOwner={isOwner} />
         {isOwner && <AddBlogForm list={list} />}
@@ -222,21 +228,21 @@ export function BlogList({
 }
 
 export function ListPage({
-  user,
+  loggedInUser,
   list,
   posts,
   hasMore,
 }: {
-  user: User;
+  loggedInUser: User | null;
   list: List;
   posts: PostType[];
   hasMore: boolean;
   page: number;
 }) {
-  const isOwner = list.userId === user.id;
+  const isOwner = loggedInUser?.id === list.user.id;
 
   return (
-    <BaseLayout loggedInUser={user}>
+    <BaseLayout loggedInUser={loggedInUser || undefined}>
       <div
         class="grid grid-cols-1 gap-4 md:grid-cols-[2fr,1fr] w-full max-w-[1200px] mx-auto [&>*]:self-start px-4"
         x-data="{ editing: false }"
@@ -248,7 +254,7 @@ export function ListPage({
           list={list}
           className="order-2 md:order-1"
         />
-        <ListMeta list={list} isOwner={isOwner} user={user} />
+        <ListMeta list={list} isOwner={isOwner} loggedInUser={loggedInUser} />
       </div>
     </BaseLayout>
   );

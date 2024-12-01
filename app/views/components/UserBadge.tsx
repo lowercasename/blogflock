@@ -20,7 +20,7 @@ export const UserBadge = (
     },
 ) => (
     <a
-        href={`/users/${user.username}`}
+        href={`/user/${user.username}`}
         class={`inline-flex items-center rounded-full bg-orange-200 hover:bg-orange-100 ${
             sizeToClasses[size]
         }`}

@@ -140,11 +140,19 @@ func main() {
 				if contentOrDescription == "" {
 					contentOrDescription = item.Description
 				}
+				var publishedAt string
+				if item.PublishedParsed != nil {
+					publishedAt = item.PublishedParsed.String()
+				} else if item.Published != "" {
+					publishedAt = item.Published
+				} else {
+					publishedAt = time.Now().String()
+				}
 				post := Post{
 					Title:       item.Title,
 					Content:     contentOrDescription,
 					URL:         item.Link,
-					PublishedAt: item.PublishedParsed.String(),
+					PublishedAt: publishedAt,
 					GUID:        item.GUID,
 					BlogID:      feedData.ID,
 				}

@@ -38,6 +38,18 @@ func failOnError(err error, msg string) {
 	}
 }
 
+func getPublishedAt(item *gofeed.Item) time.Time {
+	var publishedAt time.Time
+	if item.PublishedParsed != nil {
+		publishedAt = *item.PublishedParsed
+	} else if item.Published != "" {
+		publishedAt, _ = time.Parse(time.RFC3339, item.Published)
+	} else {
+		publishedAt = time.Now()
+	}
+	return publishedAt
+}
+
 func main() {
 	err := godotenv.Load()
 	failOnError(err, "Failed to load .env file")
@@ -131,7 +143,8 @@ func main() {
 				continue
 			}
 			for _, item := range feed.Items {
-				if feedHasNeverBeenFetched || item.PublishedParsed.After(feedLastFetchedAtParsed) {
+				publishedAt := getPublishedAt(item)
+				if feedHasNeverBeenFetched || publishedAt.After(feedLastFetchedAtParsed) {
 					feedItemsPublishedAfterLastFetchedAt = append(feedItemsPublishedAfterLastFetchedAt, item)
 				}
 			}
@@ -140,19 +153,11 @@ func main() {
 				if contentOrDescription == "" {
 					contentOrDescription = item.Description
 				}
-				var publishedAt string
-				if item.PublishedParsed != nil {
-					publishedAt = item.PublishedParsed.String()
-				} else if item.Published != "" {
-					publishedAt = item.Published
-				} else {
-					publishedAt = time.Now().String()
-				}
 				post := Post{
 					Title:       item.Title,
 					Content:     contentOrDescription,
 					URL:         item.Link,
-					PublishedAt: publishedAt,
+					PublishedAt: getPublishedAt(item).Format(time.RFC3339),
 					GUID:        item.GUID,
 					BlogID:      feedData.ID,
 				}

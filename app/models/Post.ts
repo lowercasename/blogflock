@@ -22,7 +22,7 @@ export const PostSchema = z.object({
 
 export type PostObject = z.infer<typeof PostSchema>;
 
-export interface Post extends PostObject, RowObject {}
+export interface Post extends PostObject, RowObject { }
 
 export type CreatePost = Pick<
     Post,
@@ -64,9 +64,11 @@ export const getPostById = (id: number): Post | null => {
     return db.queryEntries<Post>(`SELECT * FROM posts WHERE id = ?`, [id])?.[0];
 };
 
-export const getPostByGuid = (guid: string): Post | null => {
-    return db.queryEntries<Post>(`SELECT * FROM posts WHERE guid = ?`, [guid])
-        ?.[0];
+export const getPostByGuid = (guid: string, blogId: number): Post | null => {
+    return db.queryEntries<Post>(
+        `SELECT * FROM posts WHERE guid = ? AND blogId = ?`,
+        [guid, blogId],
+    )?.[0];
 };
 
 export const createPost = async (post: CreatePost): Promise<Post> => {
@@ -213,8 +215,7 @@ export const getPostsForListsIds = (
     offset: number,
 ): [Post[], boolean] => {
     const rows = db.queryEntries(
-        `${query} WHERE lb.listId IN (${
-            listIds.join(",")
+        `${query} WHERE lb.listId IN (${listIds.join(",")
         }) ORDER BY p.publishedAt DESC LIMIT ? OFFSET ?`,
         [limit + 1, offset],
     );

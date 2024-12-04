@@ -30,7 +30,7 @@ app.post(
     }),
     async (c: Context) => {
         const json = c.get("formData");
-        const existingPost = getPostByGuid(json.guid);
+        const existingPost = getPostByGuid(json.guid, Number(json.blogId));
         if (existingPost) {
             updateBlogLastFetchedAt(Number(json.blogId));
             return c.json({ message: "Post already exists" });

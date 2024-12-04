@@ -49,7 +49,7 @@ try {
                 title: body.title,
                 publishedAt: new Date(body.publishedAt),
             });
-            const existingPost = getPostByGuid(probablyGuid);
+            const existingPost = getPostByGuid(probablyGuid, body.blogId);
             if (existingPost) {
                 updateBlogLastFetchedAt(Number(body.blogId));
                 console.log(

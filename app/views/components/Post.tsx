@@ -23,7 +23,7 @@ const PostContent = ({ post }: { post: PostType }) => {
 
 export const Post = ({ post }: { post: PostType }) => (
     <Card
-        title={post.title || `Post on ${post.listBlog.blog.siteUrl}`}
+        title={post.title}
         href={post.url}
     >
         <article class="flex flex-col gap-2">

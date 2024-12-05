@@ -17,12 +17,13 @@ export const PostSchema = z.object({
     listBlog: ListBlogWithRelationsSchema,
 }).transform((post) => ({
     ...post,
+    title: post.title || `Post on ${post.listBlog.title}`,
     shortContent: excerpt(post.content, 50),
 }));
 
 export type PostObject = z.infer<typeof PostSchema>;
 
-export interface Post extends PostObject, RowObject { }
+export interface Post extends PostObject, RowObject {}
 
 export type CreatePost = Pick<
     Post,
@@ -215,7 +216,8 @@ export const getPostsForListsIds = (
     offset: number,
 ): [Post[], boolean] => {
     const rows = db.queryEntries(
-        `${query} WHERE lb.listId IN (${listIds.join(",")
+        `${query} WHERE lb.listId IN (${
+            listIds.join(",")
         }) ORDER BY p.publishedAt DESC LIMIT ? OFFSET ?`,
         [limit + 1, offset],
     );

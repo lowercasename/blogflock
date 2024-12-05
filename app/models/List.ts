@@ -244,32 +244,21 @@ export const listToAtomFeed = async (list: List): Promise<string> => {
         generator: "BlogFlock",
     });
 
-    const fetchAndAddPosts = async (
-        { listId, limit, offset }: {
-            listId: number;
-            limit: number;
-            offset: number;
-        },
-    ) => {
-        const [posts, hasMore] = getPostsForListsIds([listId], limit, offset);
-        posts.forEach((post) => {
-            atomFeed.addItem({
-                title: `${post.title} - ${post.listBlog.title}`,
-                link: post.url,
-                id: post.guid,
-                updated: post.publishedAt,
-                summary: "",
-                content: {
-                    body: post.content,
-                    type: "html",
-                },
-            });
+    // Retrieve the 20 most recent posts from the list
+    const [posts] = getPostsForListsIds([list.id], 20, 0);
+    posts.forEach((post) => {
+        atomFeed.addItem({
+            title: `${post.title} - ${post.listBlog.title}`,
+            link: post.url,
+            id: post.guid,
+            updated: post.publishedAt,
+            summary: "",
+            content: {
+                body: post.content,
+                type: "html",
+            },
         });
-        if (hasMore) {
-            await fetchAndAddPosts({ listId, limit, offset: offset + limit });
-        }
-    };
-    await fetchAndAddPosts({ listId: list.id, limit: 100, offset: 0 });
+    });
 
     return atomFeed.build();
 };

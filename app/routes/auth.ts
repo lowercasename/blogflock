@@ -217,7 +217,7 @@ app.post(
         );
 
         c.header("HX-Redirect", "/");
-        c.text("", 200);
+        return c.text("", 200);
     },
 );
 

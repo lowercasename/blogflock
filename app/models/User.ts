@@ -3,9 +3,7 @@ import { compare, hash } from "https://deno.land/x/bcrypt/mod.ts";
 import { db } from "../lib/db.ts";
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import { encode } from "../lib/hashids.ts";
-import { init, transform } from "https://deno.land/x/goldmark/mod.ts";
-
-await init();
+import { markdownToHtml } from "../lib/text.ts";
 
 export const PublicUserFieldsSchema = z.object({
     id: z.number(),
@@ -18,10 +16,7 @@ export const PublicUserFieldsSchema = z.object({
 export const PublicUserFieldsWithRenderedBioSchema = PublicUserFieldsSchema
     .transform(async (data) => ({
         ...data,
-        renderedBio: data.bio
-            ? (await transform(data.bio, { extensions: { autolinks: true } }))
-                .content
-            : "",
+        renderedBio: data.bio ? await markdownToHtml(data.bio) : "",
     }));
 
 export type PublicUserFields = z.infer<typeof PublicUserFieldsSchema>;

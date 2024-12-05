@@ -1,6 +1,7 @@
 import { DOMParser, Node } from "jsr:@b-fuze/deno-dom";
 import * as ammonia from "https://deno.land/x/ammonia@0.3.1/mod.ts";
 import { encodeHex } from "jsr:@std/encoding/hex";
+import markdownit from "npm:markdown-it";
 
 await ammonia.init();
 
@@ -77,3 +78,11 @@ export async function hash(str: string): Promise<string> {
     const hash = encodeHex(hashBuffer);
     return hash;
 }
+
+export const markdownToHtml = async (markdown: string): Promise<string> => {
+    const md = markdownit({
+        linkify: true,
+    });
+    const html = await md.render(markdown);
+    return html;
+};

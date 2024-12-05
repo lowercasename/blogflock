@@ -128,7 +128,7 @@ app.patch(
                     list,
                     messages: validationErrors,
                     formData,
-                    user,
+                    loggedInUser: user,
                     isOwner: true,
                 }),
             );
@@ -149,7 +149,7 @@ app.patch(
                             "An unexpected error occurred. Please try again.",
                     }],
                     formData,
-                    user,
+                    loggedInUser: user,
                     isOwner: true,
                 }),
             );
@@ -159,7 +159,7 @@ app.patch(
                 list: updatedList,
                 messages: [{ type: "success", message: "List updated" }],
                 formData,
-                user,
+                loggedInUser: user,
                 isOwner: true,
             }),
         );
@@ -194,6 +194,34 @@ app.post(
                 AddBlogForm({
                     list,
                     messages: [{ type: "error", message: "Unauthorized" }],
+                    formData,
+                }),
+            );
+        }
+
+        // Is this one of BlogFlock's own feeds? If so, we don't want to add it for obvious reasons.
+        try {
+            if (new URL(formData.feedUrl).hostname === "blogflock.com") {
+                return c.html(
+                    AddBlogForm({
+                        list,
+                        messages: [{
+                            type: "error",
+                            message:
+                                "Nice try, but as fun as expontential growth is, you can't add BlogFlock's own feeds to BlogFlock.",
+                        }],
+                        formData,
+                    }),
+                );
+            }
+        } catch (_) {
+            return c.html(
+                AddBlogForm({
+                    list,
+                    messages: [{
+                        type: "error",
+                        message: "Invalid feed URL",
+                    }],
                     formData,
                 }),
             );

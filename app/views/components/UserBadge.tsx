@@ -2,9 +2,9 @@ import { PublicUserFields, User } from "../../models/User.ts";
 import { UserIcon } from "./Icons.tsx";
 
 const sizeToIconSize = {
-    sm: 3,
-    md: 5,
-    lg: 6,
+    sm: 'size-3',
+    md: 'size-5',
+    lg: 'size-6',
 };
 
 const sizeToClasses = {
@@ -25,7 +25,7 @@ export const UserBadge = (
             sizeToClasses[size]
         }`}
     >
-        <div class={`size-${sizeToIconSize[size]}`}>
+        <div class={`${sizeToIconSize[size]}`}>
             <UserIcon />
         </div>
         <span>{user.username}</span>

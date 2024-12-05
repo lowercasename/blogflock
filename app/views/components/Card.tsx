@@ -20,7 +20,7 @@ export function Card(
             }`}
             id={id}
         >
-            <div class="flex justify-between items-center mb-2">
+            <div class="flex justify-between items-start mb-2">
                 <h2 class="text-xl font-semibold text-orange-900">
                     {href
                         ? <a href={href} class="hover:underline">{title}</a>

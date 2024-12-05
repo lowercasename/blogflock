@@ -15,6 +15,7 @@ import {
     getFollowedListsByUserId,
     getListByHashId,
     getRandomLists,
+    listToAtomFeed,
 } from "../models/List.ts";
 import { UserProfilePage } from "../views/UserProfilePage.tsx";
 import { ListPage } from "../views/ListPage.tsx";
@@ -118,6 +119,17 @@ app.get(
     flash,
     (c: Context) => renderListPage(c, 1),
 );
+
+app.get("/list/:hashId/feed.xml", async (c: Context) => {
+    const list = getListByHashId(c.req.param("hashId"));
+    if (!list) {
+        return c.text("List not found", 404);
+    }
+
+    const feed = await listToAtomFeed(list);
+    c.header("Content-Type", "application/xml");
+    return c.text(feed);
+});
 
 app.get("/user/:username", jwtAuthMiddleware, (c: Context) => {
     const loggedInUser = c.get("user");

@@ -15,9 +15,9 @@ export const PostSchema = z.object({
     createdAt: z.coerce.date(),
     guid: z.string(),
     listBlog: ListBlogWithRelationsSchema,
-}).transform(({ content, ...rest }) => ({
-    ...rest,
-    shortContent: excerpt(content, 50),
+}).transform((post) => ({
+    ...post,
+    shortContent: excerpt(post.content, 50),
 }));
 
 export type PostObject = z.infer<typeof PostSchema>;

@@ -2,6 +2,7 @@
   "version": "4",
   "specifiers": {
     "jsr:@b-fuze/deno-dom@*": "0.1.48",
+    "jsr:@feed/feed@*": "1.1.0",
     "jsr:@hono/hono@^4.6.10": "4.6.10",
     "jsr:@maxim-mazurok/sax-ts@1.2.13": "1.2.13",
     "jsr:@std/bytes@^1.0.2": "1.0.4",
@@ -22,6 +23,9 @@
   "jsr": {
     "@b-fuze/deno-dom@0.1.48": {
       "integrity": "bf5b591aef2e9e9c59adfcbb93a9ecd45bab5b7c8263625beafa5c8f1662e7da"
+    },
+    "@feed/feed@1.1.0": {
+      "integrity": "81c457f9e00d11bce9e52929155a391b8ad0f05c2ad39e3df943fd518e7d93ef"
     },
     "@hono/hono@4.6.10": {
       "integrity": "dae93ac8bb49881f99506aa8e01e5536d5d72cc3c2b556bde2816fdf25ca609c"

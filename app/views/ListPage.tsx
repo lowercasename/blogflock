@@ -8,12 +8,13 @@ import { Flash } from "../lib/flash.ts";
 import { Card } from "./components/Card.tsx";
 import { Stack } from "./components/Stack.tsx";
 import { Link } from "./components/Link.tsx";
-import { Button, IconButton } from "./components/Button.tsx";
+import { Button, IconButton, IconButtonLink } from "./components/Button.tsx";
 import {
   BinIcon,
   MinusCircleIcon,
   PenIcon,
   PlusCircleIcon,
+  RSSIcon,
 } from "./components/Icons.tsx";
 import { Input, Textarea } from "./components/Input.tsx";
 import { UserBadge } from "./components/UserBadge.tsx";
@@ -67,8 +68,9 @@ export function ListMeta(
 ) {
   return (
     <Card
-      title={<div x-show="!editing">{list.name}</div>}
-      controls={isOwner
+      title={<><div x-show="!editing">{list.name}</div><div x-show="editing">Editing List</div></>}
+      controls={<div class="flex gap-2">
+      {isOwner
         ? (
           <IconButton
             icon={<PenIcon />}
@@ -79,6 +81,14 @@ export function ListMeta(
           </IconButton>
         )
         : null}
+        <IconButtonLink
+          icon={<RSSIcon />}
+          href={`/list/${list.hashId}/feed.xml`}
+          target="_blank"
+        >
+          Feed
+        </IconButtonLink>
+      </div>}
       className="order-1 md:order-2"
       id="list-meta"
     >

@@ -7,6 +7,8 @@ import { ListFollowerSchema } from "./ListFollower.ts";
 import { PublicUserFieldsSchema } from "./User.ts";
 import { shuffleArray } from "../lib/util.ts";
 import { ListBlogSchema } from "./ListBlog.ts";
+import { Atom } from "jsr:@feed/feed";
+import { getPostsForListsIds } from "./Post.ts";
 
 export const ListSchema = z.object({
     id: z.number(),
@@ -223,4 +225,51 @@ export const updateList = (id: number, list: UpdateList): List | null => {
 export const deleteList = (id: number): boolean => {
     db.query(`DELETE FROM lists WHERE id = ?`, [id]);
     return true;
+};
+
+export const listToAtomFeed = async (list: List): Promise<string> => {
+    const atomFeed = new Atom({
+        title: `${list.name} - BlogFlock`,
+        description: list.description || "",
+        link: `https://blogflock.com/lists/${list.hashId}`,
+        authors: [
+            {
+                name: list.listBlogs?.map((lb) => lb.author || lb.title)
+                    .filter((author) => author)
+                    .join(", ") || "",
+                email: "",
+            },
+        ],
+        id: `https://blogflock.com/lists/${list.hashId}`,
+        generator: "BlogFlock",
+    });
+
+    const fetchAndAddPosts = async (
+        { listId, limit, offset }: {
+            listId: number;
+            limit: number;
+            offset: number;
+        },
+    ) => {
+        const [posts, hasMore] = getPostsForListsIds([listId], limit, offset);
+        posts.forEach((post) => {
+            atomFeed.addItem({
+                title: `${post.title} - ${post.listBlog.title}`,
+                link: post.url,
+                id: post.guid,
+                updated: post.publishedAt,
+                summary: "",
+                content: {
+                    body: post.content,
+                    type: "html",
+                },
+            });
+        });
+        if (hasMore) {
+            await fetchAndAddPosts({ listId, limit, offset: offset + limit });
+        }
+    };
+    await fetchAndAddPosts({ listId: list.id, limit: 100, offset: 0 });
+
+    return atomFeed.build();
 };

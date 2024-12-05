@@ -74,16 +74,16 @@ export function UserProfilePage(
                             </p>
                         )}
                 </Card>
-                <Card title={`Lists followed by ${user.username}`}>
-                    <Stack
-                        items={followedLists.map((l) => <ListItem list={l} />)}
-                    />
-                </Card>
                 <Card title={`Lists created by ${user.username}`}>
                     <Stack
                         items={createdLists.map((l) => <ListItem list={l} />)}
                     />
                     {isOwner ? <CreateListForm /> : null}
+                </Card>
+                <Card title={`Lists followed by ${user.username}`}>
+                    <Stack
+                        items={followedLists.map((l) => <ListItem list={l} />)}
+                    />
                 </Card>
             </div>
         </BaseLayout>

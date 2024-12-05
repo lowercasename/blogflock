@@ -87,7 +87,7 @@ export function ListMeta(
         {isOwner && (
           <EditListForm list={list} messages={messages} formData={formData} />
         )}
-        <div>
+        <div class="flex flex-wrap gap-1 items-center">
           Created by <UserBadge user={list.user} />
         </div>
 

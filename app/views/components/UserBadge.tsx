@@ -15,7 +15,7 @@ const sizeToClasses = {
 
 export const UserBadge = (
     { user, size = "sm" }: {
-        user: PublicUserFields | User;
+        user: Pick<PublicUserFields, "username">;
         size?: "sm" | "md" | "lg";
     },
 ) => (

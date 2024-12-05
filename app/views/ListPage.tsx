@@ -68,7 +68,7 @@ export function ListMeta(
 ) {
   return (
     <Card
-      title={<><div x-show="!editing">{list.name}</div><div x-show="editing">Editing List</div></>}
+      title={<><div x-show="!editing">{list.name}</div><div x-show="editing" style="display: none;">Editing List</div></>}
       controls={<div class="flex gap-2">
       {isOwner
         ? (
@@ -98,11 +98,11 @@ export function ListMeta(
           <EditListForm list={list} messages={messages} formData={formData} />
         )}
         <div class="flex flex-wrap gap-1 items-center">
-          Created by <UserBadge user={list.user} />
+          <span class="font-semibold">Created by</span> <UserBadge user={list.user} />
         </div>
 
         {loggedInUser
-          ? list.listFollowers?.some((lf) => lf.userId === loggedInUser.id)
+          ? list.listFollowers?.some((lf) => lf.id === loggedInUser.id)
             ? (
               <Button
                 hx-delete={`/lists/${list.hashId}/followers`}
@@ -124,6 +124,17 @@ export function ListMeta(
               </Button>
             )
           : null}
+
+        {list.listFollowers && list.listFollowers.length > 0 && (
+          <div>
+          <h2 class="text-lg font-semibold text-orange-800 mb-2">Followers</h2>
+          <div class="flex gap-2 flex-wrap">
+            {list.listFollowers.map((lf) => (
+              <UserBadge user={lf} size="sm" />
+            ))}
+          </div>
+          </div>
+        )}
 
         <BlogList list={list} isOwner={isOwner} />
         {isOwner && <AddBlogForm list={list} />}

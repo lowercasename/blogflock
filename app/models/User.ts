@@ -3,6 +3,9 @@ import { compare, hash } from "https://deno.land/x/bcrypt/mod.ts";
 import { db } from "../lib/db.ts";
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import { encode } from "../lib/hashids.ts";
+import { init, transform } from "https://deno.land/x/goldmark/mod.ts";
+
+await init();
 
 export const PublicUserFieldsSchema = z.object({
     id: z.number(),
@@ -12,7 +15,19 @@ export const PublicUserFieldsSchema = z.object({
     hashId: z.string(),
 });
 
+export const PublicUserFieldsWithRenderedBioSchema = PublicUserFieldsSchema
+    .transform(async (data) => ({
+        ...data,
+        renderedBio: data.bio
+            ? (await transform(data.bio, { extensions: { autolinks: true } }))
+                .content
+            : "",
+    }));
+
 export type PublicUserFields = z.infer<typeof PublicUserFieldsSchema>;
+export type PublicUserFieldsWithRenderedBio = z.infer<
+    typeof PublicUserFieldsWithRenderedBioSchema
+>;
 
 export const UserSchema = z.object({
     id: z.number(),
@@ -212,10 +227,19 @@ export const getUserById = (id: number): User | null => {
     return db.queryEntries<User>(`SELECT * FROM users WHERE id = ?`, [id])?.[0];
 };
 
-export const getUserByUsername = (username: string): User | null => {
-    return db.queryEntries<User>(`SELECT * FROM users WHERE username = ?`, [
-        username,
-    ])?.[0];
+export const getUserByUsername = async (
+    username: string,
+): Promise<PublicUserFieldsWithRenderedBio | null> => {
+    const user = db.queryEntries<User>(
+        `SELECT * FROM users WHERE username = ?`,
+        [
+            username,
+        ],
+    )?.[0];
+    if (!user) {
+        return null;
+    }
+    return await PublicUserFieldsWithRenderedBioSchema.parseAsync(user);
 };
 
 export const updateUser = (id: number, user: UpdateUser): User | null => {

@@ -131,9 +131,9 @@ app.get("/list/:hashId/feed.xml", async (c: Context) => {
     return c.text(feed);
 });
 
-app.get("/user/:username", jwtAuthMiddleware, (c: Context) => {
+app.get("/user/:username", jwtAuthMiddleware, async (c: Context) => {
     const loggedInUser = c.get("user");
-    const user = getUserByUsername(c.req.param("username"));
+    const user = await getUserByUsername(c.req.param("username"));
     if (!user) {
         return c.redirect("/");
     }

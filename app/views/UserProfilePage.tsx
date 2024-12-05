@@ -1,5 +1,5 @@
 import { BaseLayout } from "./layouts/BaseLayout.tsx";
-import { User } from "../models/User.ts";
+import { PublicUserFieldsWithRenderedBio, User } from "../models/User.ts";
 import { List } from "../models/List.ts";
 import { ListItem } from "./components/ListItem.tsx";
 import { Card } from "./components/Card.tsx";
@@ -46,7 +46,7 @@ export function CreateListForm(
 export function UserProfilePage(
     { loggedInUser, user, createdLists, followedLists }: {
         loggedInUser: User;
-        user: User;
+        user: PublicUserFieldsWithRenderedBio;
         createdLists: List[];
         followedLists: List[];
     },
@@ -65,8 +65,8 @@ export function UserProfilePage(
                         )
                         : null}
                 >
-                    {user.bio
-                        ? <p class="text-gray-600">{user.bio}</p>
+                    {user.renderedBio
+                        ? <div class="text-gray-600 markdown" dangerouslySetInnerHTML={{ __html: user.renderedBio.toString() }} />
                         : (
                             <p class="text-gray-500">
                                 This person hasn't written anything about

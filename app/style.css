@@ -3,3 +3,11 @@
 @tailwind components;
 @tailwind utilities;
 
+.markdown {
+    p {
+        @apply mb-1;
+    }
+    a {
+        @apply font-semibold text-orange-500 hover:text-orange-600;
+    }
+}

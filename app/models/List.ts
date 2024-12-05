@@ -3,7 +3,6 @@ import { RowObject } from "https://deno.land/x/sqlite@v3.8/mod.ts";
 import { db } from "../lib/db.ts";
 import { decode, encode } from "../lib/hashids.ts";
 import joinjs from "npm:join-js";
-import { ListFollowerSchema } from "./ListFollower.ts";
 import { PublicUserFieldsSchema } from "./User.ts";
 import { shuffleArray } from "../lib/util.ts";
 import { ListBlogSchema } from "./ListBlog.ts";
@@ -19,7 +18,9 @@ export const ListSchema = z.object({
     isPrivate: z.coerce.boolean(),
     createdAt: z.coerce.date(),
     user: PublicUserFieldsSchema,
-    listFollowers: z.array(ListFollowerSchema).optional(),
+    listFollowers: z.array(
+        PublicUserFieldsSchema.pick({ id: true, username: true, hashId: true }),
+    ).optional(),
     listBlogs: z.array(ListBlogSchema).optional(),
 });
 
@@ -41,13 +42,14 @@ const query = `
         lb.customImageUrl as lb_customImageUrl,
         lb.customAuthor as lb_customAuthor,
         lb.createdAt as lb_createdAt,
-        lf.userId as lf_userId,
-        lf.listId as lf_listId,
         u.id as user_id,
         u.hashId as user_hashId,
         u.username as user_username,
         u.avatarUrl as user_avatarUrl,
         u.bio as user_bio,
+        follower.id as follower_id,
+        follower.hashId as follower_hashId,
+        follower.username as follower_username,
         b.id as blog_id,
         b.hashId as blog_hashId,
         b.feedUrl as blog_feedUrl,
@@ -62,6 +64,7 @@ const query = `
     LEFT JOIN users u ON l.userId = u.id
     LEFT JOIN list_blogs lb ON l.id = lb.listId
     LEFT JOIN list_followers lf ON l.id = lf.listId
+    LEFT JOIN users follower ON lf.userId = follower.id
     LEFT JOIN blogs b ON lb.blogId = b.id
 `;
 
@@ -90,7 +93,7 @@ const buildListsResponse = (rows: RowObject[]): List[] | null => {
                 {
                     name: "listFollowers",
                     mapId: "listFollowerMap",
-                    columnPrefix: "lf_",
+                    columnPrefix: "follower_",
                 },
             ],
             associations: [
@@ -130,8 +133,8 @@ const buildListsResponse = (rows: RowObject[]): List[] | null => {
         },
         {
             mapId: "listFollowerMap",
-            idProperty: "userId",
-            properties: ["userId", "listId"],
+            idProperty: "id",
+            properties: ["hashId", "username", "id"],
         },
         {
             mapId: "userMap",

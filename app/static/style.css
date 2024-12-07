@@ -752,10 +752,6 @@ video {
   border-color: rgb(229 231 235 / var(--tw-divide-opacity, 1));
 }
 
-.break-words{
-  overflow-wrap: break-word;
-}
-
 .rounded{
   border-radius: 0.25rem;
 }
@@ -995,6 +991,10 @@ video {
   --tw-shadow: 5px 5px 0 rgba(0, 0, 0, 0.03), 2px 2px 0 rgba(0, 0, 0, 0.08);
   --tw-shadow-colored: 5px 5px 0 var(--tw-shadow-color), 2px 2px 0 var(--tw-shadow-color);
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+
+.\[word-break\:break-word\]{
+  word-break: break-word;
 }
 
 .markdown {

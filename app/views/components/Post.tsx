@@ -6,7 +6,7 @@ import { UserBadge } from "./UserBadge.tsx";
 
 const PostContent = ({ post }: { post: PostType }) => {
     if (post.shortContent.type === "text") {
-        return <p class="text-gray-900 break-words">{post.shortContent.content}</p>;
+        return <p class="text-gray-900 [word-break:break-word]">{post.shortContent.content}</p>;
     } else {
         return (
             <>
@@ -15,7 +15,7 @@ const PostContent = ({ post }: { post: PostType }) => {
                     alt={post.shortContent.alt || post.title}
                     class="w-full"
                 />
-                <p class="text-gray-900 break-words">{post.shortContent.content}</p>
+                <p class="text-gray-900 [word-break:break-word]">{post.shortContent.content}</p>
             </>
         );
     }

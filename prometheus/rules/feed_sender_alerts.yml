@@ -6,7 +6,7 @@ groups:
           feed_sender_healthy == 0
         for: 2m
         labels:
-          severity: warning
+          severity: critical
         annotations:
           summary: "Feed Sender is unhealthy"
           description: "Feed Sender health check has been failing for more than 2 minutes"
@@ -40,10 +40,10 @@ groups:
           description: "Feed Worker has been experiencing a high error rate in the last 5 minutes"
 
       - alert: FeedWorkerStalled
-        expr: rate(feed_worker_processed_feeds_total[15m]) == 0
+        expr: rate(feed_worker_processed_feeds_total[1d]) == 0
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "Feed Worker not processing feeds"
-          description: "Feed Worker hasn't processed any feeds in the last 15 minutes"
+          description: "Feed Worker hasn't processed any feeds in the last 24 hours"

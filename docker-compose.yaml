@@ -8,11 +8,6 @@ services:
       - "8021:8021"
     env_file:
       - .env
-    # environment:
-    #   - RABBITMQ_USER=${RABBITMQ_USER}
-    #   - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-    #   - RABBITMQ_HOST=rabbitmq
-    #   - RABBITMQ_PORT=5672
     volumes:
       - ./app:/app
       - ./db:/db
@@ -36,6 +31,13 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "8090:8090"
 
   feed-sender:
     container_name: blogflock-feed-sender
@@ -56,6 +58,13 @@ services:
       app:
         condition: service_started
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "8080:8080"
 
   rabbitmq:
     container_name: blogflock-rabbitmq
@@ -74,5 +83,47 @@ services:
       timeout: 10s
       retries: 3
 
+  prometheus:
+    container_name: blogflock-prometheus
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    depends_on:
+      - feed-sender
+
+  alertmanager:
+    container_name: blogflock-alertmanager
+    image: prom/alertmanager:latest
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    ports:
+      - "9093:9093"
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    restart: unless-stopped
+
+  grafana:
+    container_name: blogflock-grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    # environment:
+    #   - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
 volumes:
   rabbitmq_data:
+  prometheus_data:
+  grafana_data:

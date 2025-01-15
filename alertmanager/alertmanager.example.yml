@@ -1,0 +1,31 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'pushover-notifications'
+
+receivers:
+  - name: 'pushover-notifications'
+    pushover_configs:
+      - user_key: USER_KEY_HERE
+        token: TOKEN_HERE
+        priority: '{{ if eq .GroupLabels.severity "critical" }}2{{ else }}1{{ end }}'
+        retry: '30s'  # Required for emergency priority (2)
+        expire: '1h'  # Required for emergency priority (2)
+        html: true
+        title: '{{ .GroupLabels.alertname }}'
+        message: >-
+          {{ range .Alerts }}
+          {{ .Annotations.description }}
+          {{ end }}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

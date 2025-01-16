@@ -42,6 +42,8 @@ type AppMetrics struct {
 	ProcessedPostsCount atomic.Int64
 	ErrorCount          atomic.Int64
 	IsHealthy           atomic.Bool
+	RabbitMQConnected   atomic.Bool
+	LastConnectionTime  atomic.Value
 }
 
 var metrics AppMetrics
@@ -91,6 +93,14 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "feed_worker_errors_total %d\n",
 			metrics.ErrorCount.Load())
 
+		fmt.Fprintf(w, "# HELP feed_worker_rabbitmq_connected Whether RabbitMQ is connected\n")
+		fmt.Fprintf(w, "# TYPE feed_worker_rabbitmq_connected gauge\n")
+		if metrics.RabbitMQConnected.Load() {
+			fmt.Fprintf(w, "feed_worker_rabbitmq_connected 1\n")
+		} else {
+			fmt.Fprintf(w, "feed_worker_rabbitmq_connected 0\n")
+		}
+
 		fmt.Fprintf(w, "# EOF\n")
 		return
 	}
@@ -101,15 +111,19 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		ProcessedFeedsCount int64     `json:"processedFeedsCount"`
 		ProcessedPostsCount int64     `json:"processedPostsCount"`
 		ErrorCount          int64     `json:"errorCount"`
+		RabbitMQConnected   bool      `json:"rabbitMQConnected"`
+		LastConnectionTime  time.Time `json:"lastConnectionTime"`
 	}{
 		Status:              "healthy",
 		LastSuccessfulRun:   metrics.LastSuccessfulRun.Load().(time.Time),
 		ProcessedFeedsCount: metrics.ProcessedFeedsCount.Load(),
 		ProcessedPostsCount: metrics.ProcessedPostsCount.Load(),
 		ErrorCount:          metrics.ErrorCount.Load(),
+		RabbitMQConnected:   metrics.RabbitMQConnected.Load(),
+		LastConnectionTime:  metrics.LastConnectionTime.Load().(time.Time),
 	}
 
-	if !metrics.IsHealthy.Load() {
+	if !metrics.IsHealthy.Load() || !metrics.RabbitMQConnected.Load() {
 		status.Status = "unhealthy"
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
@@ -130,9 +144,44 @@ func getPublishedAt(item *gofeed.Item) time.Time {
 	return publishedAt
 }
 
+func connectToRabbitMQ(rabbitmqUser, rabbitmqPassword, rabbitmqHost string) (*amqp.Connection, *amqp.Channel, error) {
+	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:5672/", rabbitmqUser, rabbitmqPassword, rabbitmqHost))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to RabbitMQ: %v", err)
+	}
+
+	ch, err := conn.Channel()
+	if err != nil {
+		conn.Close()
+		return nil, nil, fmt.Errorf("failed to open channel: %v", err)
+	}
+
+	err = ch.Qos(1, 0, false)
+	if err != nil {
+		ch.Close()
+		conn.Close()
+		return nil, nil, fmt.Errorf("failed to set QoS: %v", err)
+	}
+
+	return conn, ch, nil
+}
+
+func setupConsumer(ch *amqp.Channel, queueName string) (<-chan amqp.Delivery, error) {
+	return ch.Consume(
+		queueName,
+		"",    // consumer
+		false, // auto-ack
+		false, // exclusive
+		false, // no-local
+		false, // no-wait
+		nil,   // args
+	)
+}
+
 func main() {
 	err := godotenv.Load()
 	failOnError(err, "Failed to load .env file")
+
 	rabbitmqUser := os.Getenv("RABBITMQ_USER")
 	rabbitmqPassword := os.Getenv("RABBITMQ_PASSWORD")
 	rabbitmqHost := os.Getenv("RABBITMQ_HOST")
@@ -146,145 +195,152 @@ func main() {
 
 	fp := gofeed.NewParser()
 
-	conn, err := amqp.Dial("amqp://" + rabbitmqUser + ":" + rabbitmqPassword + "@" + rabbitmqHost + ":5672/")
-	failOnError(err, "Failed to connect to RabbitMQ")
-	defer conn.Close()
+	for {
+		conn, ch, err := connectToRabbitMQ(rabbitmqUser, rabbitmqPassword, rabbitmqHost)
+		if err != nil {
+			log.Printf("Failed to connect to RabbitMQ: %v", err)
+			metrics.IsHealthy.Store(false)
+			time.Sleep(5 * time.Second)
+			continue
+		}
 
-	ch, err := conn.Channel()
-	failOnError(err, "Failed to open a channel")
-	defer ch.Close()
+		feedQueue, err := ch.QueueDeclare(
+			"feed_queue", // name
+			true,         // durable
+			false,        // delete when unused
+			false,        // exclusive
+			false,        // no-wait
+			nil,          // arguments
+		)
+		if err != nil {
+			log.Printf("Failed to declare feed queue: %v", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
 
-	feedQueue, err := ch.QueueDeclare(
-		"feed_queue", // name
-		true,         // durable
-		false,        // delete when unused
-		false,        // exclusive
-		false,        // no-wait
-		nil,          // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
+		postQueue, err := ch.QueueDeclare(
+			"post_queue", // name
+			true,         // durable
+			false,        // delete when unused
+			false,        // exclusive
+			false,        // no-wait
+			nil,          // arguments
+		)
+		if err != nil {
+			log.Printf("Failed to declare post queue: %v", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
 
-	postQueue, err := ch.QueueDeclare(
-		"post_queue", // name
-		true,         // durable
-		false,        // delete when unused
-		false,        // exclusive
-		false,        // no-wait
-		nil,          // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
+		msgs, err := setupConsumer(ch, feedQueue.Name)
+		if err != nil {
+			log.Printf("Failed to set up consumer: %v", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
 
-	err = ch.Qos(
-		1,     // prefetch count
-		0,     // prefetch size
-		false, // global
-	)
-	failOnError(err, "Failed to set QoS")
+		connClose := make(chan *amqp.Error)
+		conn.NotifyClose(connClose)
 
-	feedQueueMessages, err := ch.Consume(
-		feedQueue.Name, // queue
-		"",             // consumer
-		false,          // auto-ack
-		false,          // exclusive
-		false,          // no-local
-		false,          // no-wait
-		nil,            // args
-	)
-	failOnError(err, "Failed to register a consumer")
+		go func() {
+			for d := range msgs {
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							metrics.ErrorCount.Add(1)
+							metrics.IsHealthy.Store(false)
+							log.Printf("Recovered from panic: %v", r)
+						}
+					}()
 
-	var forever = make(chan struct{})
-
-	go func() {
-		for d := range feedQueueMessages {
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
+					log.Printf("Received a message: %s", d.Body)
+					var feedData Feed
+					err := json.Unmarshal(d.Body, &feedData)
+					if err != nil {
 						metrics.ErrorCount.Add(1)
 						metrics.IsHealthy.Store(false)
-						log.Printf("Recovered from panic: %v", r)
+						log.Printf("Failed to unmarshal feed data: %v", err)
+						d.Ack(false)
+						return
 					}
+
+					feed, err := fp.ParseURL(feedData.FeedUrl)
+					if err != nil || feed == nil {
+						metrics.ErrorCount.Add(1)
+						metrics.IsHealthy.Store(false)
+						log.Printf("Failed to fetch feed %s: %v", feedData.FeedUrl, err)
+						d.Ack(false)
+						return
+					}
+
+					log.Printf("Fetched feed %s with %d items", feed.Title, len(feed.Items))
+					feedItemsPublishedAfterLastFetchedAt := make([]*gofeed.Item, 0)
+					feedHasNeverBeenFetched := feedData.LastFetchedAt == ""
+					var feedLastFetchedAtParsed time.Time
+					if !feedHasNeverBeenFetched {
+						feedLastFetchedAtParsed, err = time.Parse(time.RFC3339, feedData.LastFetchedAt)
+						failOnError(err, "Failed to parse last fetched at")
+					}
+					if len(feed.Items) == 0 {
+						log.Printf("No items to process")
+						d.Ack(false)
+						return
+					}
+					for _, item := range feed.Items {
+						publishedAt := getPublishedAt(item)
+						if feedHasNeverBeenFetched || publishedAt.After(feedLastFetchedAtParsed) {
+							feedItemsPublishedAfterLastFetchedAt = append(feedItemsPublishedAfterLastFetchedAt, item)
+						}
+					}
+					for _, item := range feedItemsPublishedAfterLastFetchedAt {
+						contentOrDescription := item.Content
+						if contentOrDescription == "" {
+							contentOrDescription = item.Description
+						}
+						post := Post{
+							Title:       item.Title,
+							Content:     contentOrDescription,
+							URL:         item.Link,
+							PublishedAt: getPublishedAt(item).Format(time.RFC3339),
+							GUID:        item.GUID,
+							BlogID:      feedData.ID,
+						}
+						postJson, err := json.Marshal(post)
+						failOnError(err, "Failed to marshal post data")
+						// Send the post data to the post_queue
+						err = ch.Publish(
+							"",             // exchange
+							postQueue.Name, // routing key
+							false,          // mandatory
+							false,          // immediate
+							amqp.Publishing{
+								DeliveryMode: amqp.Persistent,
+								ContentType:  "text/plain",
+								Body:         []byte(postJson),
+							})
+						failOnError(err, "Failed to publish a message")
+						log.Printf(" [x] Sent %s", item.Title)
+					}
+
+					metrics.ProcessedFeedsCount.Add(1)
+					metrics.ProcessedPostsCount.Add(int64(len(feedItemsPublishedAfterLastFetchedAt)))
+					metrics.LastSuccessfulRun.Store(time.Now())
+					metrics.IsHealthy.Store(true)
+
+					log.Printf("Done")
+					d.Ack(false)
 				}()
+			}
+		}()
 
-				log.Printf("Received a message: %s", d.Body)
-				var feedData Feed
-				err := json.Unmarshal(d.Body, &feedData)
-				if err != nil {
-					metrics.ErrorCount.Add(1)
-					metrics.IsHealthy.Store(false)
-					log.Printf("Failed to unmarshal feed data: %v", err)
-					d.Ack(false)
-					return
-				}
+		log.Printf("RabbitMQ connection open")
 
-				feed, err := fp.ParseURL(feedData.FeedUrl)
-				if err != nil || feed == nil {
-					metrics.ErrorCount.Add(1)
-					metrics.IsHealthy.Store(false)
-					log.Printf("Failed to fetch feed %s: %v", feedData.FeedUrl, err)
-					d.Ack(false)
-					return
-				}
-
-				log.Printf("Fetched feed %s with %d items", feed.Title, len(feed.Items))
-				feedItemsPublishedAfterLastFetchedAt := make([]*gofeed.Item, 0)
-				feedHasNeverBeenFetched := feedData.LastFetchedAt == ""
-				var feedLastFetchedAtParsed time.Time
-				if !feedHasNeverBeenFetched {
-					feedLastFetchedAtParsed, err = time.Parse(time.RFC3339, feedData.LastFetchedAt)
-					failOnError(err, "Failed to parse last fetched at")
-				}
-				if len(feed.Items) == 0 {
-					log.Printf("No items to process")
-					d.Ack(false)
-					return
-				}
-				for _, item := range feed.Items {
-					publishedAt := getPublishedAt(item)
-					if feedHasNeverBeenFetched || publishedAt.After(feedLastFetchedAtParsed) {
-						feedItemsPublishedAfterLastFetchedAt = append(feedItemsPublishedAfterLastFetchedAt, item)
-					}
-				}
-				for _, item := range feedItemsPublishedAfterLastFetchedAt {
-					contentOrDescription := item.Content
-					if contentOrDescription == "" {
-						contentOrDescription = item.Description
-					}
-					post := Post{
-						Title:       item.Title,
-						Content:     contentOrDescription,
-						URL:         item.Link,
-						PublishedAt: getPublishedAt(item).Format(time.RFC3339),
-						GUID:        item.GUID,
-						BlogID:      feedData.ID,
-					}
-					postJson, err := json.Marshal(post)
-					failOnError(err, "Failed to marshal post data")
-					// Send the post data to the post_queue
-					err = ch.Publish(
-						"",             // exchange
-						postQueue.Name, // routing key
-						false,          // mandatory
-						false,          // immediate
-						amqp.Publishing{
-							DeliveryMode: amqp.Persistent,
-							ContentType:  "text/plain",
-							Body:         []byte(postJson),
-						})
-					failOnError(err, "Failed to publish a message")
-					log.Printf(" [x] Sent %s", item.Title)
-				}
-
-				metrics.ProcessedFeedsCount.Add(1)
-				metrics.ProcessedPostsCount.Add(int64(len(feedItemsPublishedAfterLastFetchedAt)))
-				metrics.LastSuccessfulRun.Store(time.Now())
-				metrics.IsHealthy.Store(true)
-
-				log.Printf("Done")
-				d.Ack(false)
-			}()
-		}
-	}()
-
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-	<-forever
+		err = <-connClose
+		log.Printf("RabbitMQ connection closed: %v", err)
+		metrics.IsHealthy.Store(false)
+		ch.Close()
+		conn.Close()
+		time.Sleep(5 * time.Second) // Wait before reconnecting
+		continue
+	}
 }

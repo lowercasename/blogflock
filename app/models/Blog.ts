@@ -36,7 +36,13 @@ export type UpdateBlog = Pick<
     | "autoAuthor"
 >;
 
-export const getBlogs = (): Blog[] => {
+export const getBlogs = (skipOrphans: boolean = false): Blog[] => {
+    // If skipOrphans is true, only return blogs that are connected to a list
+    if (skipOrphans) {
+        return db.queryEntries<Blog>(
+            `SELECT * FROM blogs WHERE id IN (SELECT DISTINCT blogId FROM list_blogs)`,
+        );
+    }
     return db.queryEntries<Blog>(`SELECT * FROM blogs`);
 };
 

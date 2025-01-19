@@ -51,7 +51,7 @@ func processFeedQueue(ctx context.Context, ch *amqp.Channel, feedQueue amqp.Queu
 		Timeout: 5 * time.Second,
 	}
 
-	resp, err := client.Get(apiUrl + "/api/blogs")
+	resp, err := client.Get(apiUrl + "/api/blogs?skipOrphans=true")
 	if err != nil {
 		metrics.IsHealthy.Store(false)
 		return err

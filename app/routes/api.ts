@@ -17,7 +17,8 @@ const createPostSchema = z.object({
 });
 
 app.get("/blogs", (c: Context) => {
-    const blogs = getBlogs();
+    const skipOrphans = c.req.query('skipOrphans') === 'true';
+    const blogs = getBlogs(skipOrphans);
     return c.json(blogs);
 });
 

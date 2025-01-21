@@ -8,11 +8,11 @@ import { createPost, getPostByGuid } from "../models/Post.ts";
 const app = new Hono();
 
 const createPostSchema = z.object({
-    title: z.string().min(1, { message: "Title must not be empty" }),
-    content: z.string().optional(),
-    url: z.string().url({ message: "Invalid URL" }),
+    title: z.string().trim().min(1, { message: "Title must not be empty" }),
+    content: z.string().trim().optional(),
+    url: z.string().trim().url({ message: "Invalid URL" }),
     publishedAt: z.coerce.date(),
-    guid: z.string(),
+    guid: z.string().trim(),
     blogId: z.coerce.number(),
 });
 

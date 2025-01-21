@@ -27,26 +27,27 @@ import { ListFeed } from "../views/components/ListFeed.tsx";
 const app = new Hono();
 
 const createListSchema = z.object({
-    name: z.string().min(1, { message: "List name must not be empty" }),
-    description: z.string().max(250, {
+    name: z.string().trim().min(1, { message: "List name must not be empty" }),
+    description: z.string().trim().max(250, {
         message: "Description must be 250 characters or less",
     }).optional(),
 });
 
 const updateListSchema = z.object({
-    name: z.string().min(1, { message: "List name must not be empty" }),
-    description: z.string().max(250, {
+    name: z.string().trim().min(1, { message: "List name must not be empty" }),
+    description: z.string().trim().max(250, {
         message: "Description must be 250 characters or less",
     }).optional(),
 });
 
 const addBlogToListSchema = z.object({
-    feedUrl: z.string().url({ message: "Invalid feed URL" }),
+    feedUrl: z.string().trim().url({ message: "Invalid feed URL" }),
+});
 });
 
 const updateBlogInListSchema = z.object({
-    title: z.string().min(1, { message: "Title must not be empty" }),
-    description: z.string().max(250, {
+    title: z.string().trim().min(1, { message: "Title must not be empty" }),
+    description: z.string().trim().max(250, {
         message: "Description must be 250 characters or less",
     }).optional(),
 });
@@ -208,7 +209,7 @@ app.post(
                         messages: [{
                             type: "error",
                             message:
-                                "Nice try, but as fun as expontential growth is, you can't add BlogFlock's own feeds to BlogFlock.",
+                                "Nice try, but as fun as exponential growth is, you can't add BlogFlock's own feeds to BlogFlock.",
                         }],
                         formData,
                     }),

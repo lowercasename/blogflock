@@ -15,7 +15,7 @@ import { sendEmail } from "../lib/email.ts";
 const app = new Hono();
 
 const updateBioSchema = z.object({
-    bio: z.string().max(250, { message: "Bio must be 250 characters or less." }),
+    bio: z.string().trim().max(250, { message: "Bio must be 250 characters or less." }),
 });
 
 const updateUsernameSchema = z.object({

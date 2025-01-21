@@ -43,7 +43,6 @@ const updateListSchema = z.object({
 const addBlogToListSchema = z.object({
     feedUrl: z.string().trim().url({ message: "Invalid feed URL" }),
 });
-});
 
 const updateBlogInListSchema = z.object({
     title: z.string().trim().min(1, { message: "Title must not be empty" }),

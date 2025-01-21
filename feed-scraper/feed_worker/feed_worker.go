@@ -264,11 +264,12 @@ func main() {
 						return
 					}
 
-					feed, err := fp.ParseURL(feedData.FeedUrl)
+					trimmedUrl := strings.TrimSpace(feedData.FeedUrl)
+					feed, err := fp.ParseURL(trimmedUrl)
 					if err != nil || feed == nil {
 						metrics.ErrorCount.Add(1)
 						metrics.IsHealthy.Store(false)
-						log.Printf("Failed to fetch feed %s: %v", feedData.FeedUrl, err)
+						log.Printf("Failed to fetch feed %s: %v", trimmedUrl, err)
 						d.Ack(false)
 						return
 					}

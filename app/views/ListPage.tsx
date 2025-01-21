@@ -57,6 +57,44 @@ export function AddBlogForm({
   );
 }
 
+export function ImportOpmlForm({
+  list,
+  messages,
+  formData,
+}: {
+  list: List;
+  messages?: Flash[];
+  formData?: Record<string, string>;
+}) {
+  return (
+    <form
+      class="flex flex-col gap-2 p-4 bg-stone-100 border border-stone-300 rounded"
+      hx-post={`/lists/${list.hashId}/import/opml`}
+      hx-swap="outerHTML"
+      hx-target="this"
+      x-data="{ loading: false }"
+    >
+      <Input
+        type="text"
+        name="opmlUrl"
+        placeholder="OPML file URL"
+        value={formData?.opmlUrl}
+        x-bind:disabled="loading"
+        required
+      />
+      <FlashMessage messages={messages} />
+      <Button
+        type="submit"
+        x-bind:disabled="loading"
+        x-text="loading ? 'Importing...' : 'Import OPML file'"
+        x-on:click="$nextTick(() => loading = true)"
+      >
+        Import OPML file
+      </Button>
+    </form>
+  );
+}
+
 export function ListMeta(
   { list, isOwner, messages, formData, loggedInUser }: {
     list: List;
@@ -81,13 +119,6 @@ export function ListMeta(
           </IconButton>
         )
         : null}
-        <IconButtonLink
-          icon={<RSSIcon />}
-          href={`/list/${list.hashId}/feed.xml`}
-          target="_blank"
-        >
-          Feed
-        </IconButtonLink>
       </div>}
       className="order-1 md:order-2"
       id="list-meta"
@@ -99,6 +130,23 @@ export function ListMeta(
         )}
         <div class="flex flex-wrap gap-1 items-center">
           <span class="font-semibold">Created by</span> <UserBadge user={list.user} />
+        </div>
+
+        <div class="flex gap-2 items-center">
+        <IconButtonLink
+          icon={<RSSIcon />}
+          href={`/list/${list.hashId}/feed.xml`}
+          target="_blank"
+        >
+          Feed
+        </IconButtonLink>
+        <IconButtonLink
+          icon={<RSSIcon />}
+          href={`/list/${list.hashId}/opml.xml`}
+          target="_blank"
+        >
+          Export as OPML
+        </IconButtonLink>
         </div>
 
         {loggedInUser
@@ -138,6 +186,7 @@ export function ListMeta(
 
         <BlogList list={list} isOwner={isOwner} />
         {isOwner && <AddBlogForm list={list} />}
+        {isOwner && <ImportOpmlForm list={list} />}
       </div>
     </Card>
   );

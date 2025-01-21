@@ -3,6 +3,7 @@ import { RowObject } from "https://deno.land/x/sqlite@v3.8/mod.ts";
 import { db } from "../lib/db.ts";
 import { BlogSchema } from "./Blog.ts";
 import { ListSchema } from "./List.ts";
+import { DOMParser } from "jsr:@b-fuze/deno-dom";
 
 export const ListBlogSchema = z.object({
     listId: z.number(),

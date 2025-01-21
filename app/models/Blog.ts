@@ -90,6 +90,24 @@ function isProbablyFeed(content: string): boolean {
     return true;
 }
 
+const getAuthorName = (
+    input: Record<string, string> | string | undefined,
+): string => {
+    if (!input) {
+        return "";
+    }
+    if (typeof input === "string") {
+        return input;
+    }
+    if (input.name && typeof input.name === "string") {
+        return input.name;
+    }
+    if (input.name && typeof input.name === "object" && "value" in input.name) {
+        return (input.name as { value: string }).value || "";
+    }
+    return "";
+};
+
 export const getBlogFeedUrlFromUrl = async (
     url: string,
 ): Promise<string | null> => {
@@ -169,7 +187,12 @@ export const createBlog = async (blog: CreateBlog): Promise<Blog | null> => {
                 autoTitle: feed.title?.value || null,
                 autoDescription: feed.description || null,
                 autoImageUrl: feed.image?.url || null,
-                autoAuthor: feed.author?.name || null,
+                autoAuthor: typeof feed.author?.name === "string"
+                    ? feed.author.name
+                    : (typeof feed.author?.name === "object" &&
+                            "value" in (feed.author.name as { value?: string })
+                        ? (feed.author.name as { value: string }).value
+                        : null),
             },
         );
         const id = db.lastInsertRowId;

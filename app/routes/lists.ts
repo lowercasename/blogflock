@@ -1,5 +1,7 @@
 import { Context, Hono } from "hono";
 import { z } from "https://deno.land/x/zod/mod.ts";
+import { parse as parseXml } from "https://deno.land/x/xml@6.0.4/mod.ts";
+import opml from "npm:opml";
 import { setFlash } from "../lib/flash.ts";
 import { validateRequest } from "../lib/validateRequest.ts";
 import { jwtAuthMiddleware } from "../lib/auth.ts";
@@ -17,7 +19,12 @@ import {
 } from "../models/ListBlog.ts";
 import { addListFollower, removeListFollower } from "../models/ListFollower.ts";
 import { renderListPage } from "./client.ts";
-import { AddBlogForm, BlogList, ListMeta } from "../views/ListPage.tsx";
+import {
+    AddBlogForm,
+    BlogList,
+    ImportOpmlForm,
+    ListMeta,
+} from "../views/ListPage.tsx";
 import { upgradeWebSocket } from "hono/deno";
 import { addWsClient, removeWsClient } from "../lib/websockets.ts";
 import { WSContext } from "hono/ws";
@@ -43,6 +50,9 @@ const updateListSchema = z.object({
 const addBlogToListSchema = z.object({
     feedUrl: z.string().trim().url({ message: "Invalid feed URL" }),
 });
+
+const importOpmlSchema = z.object({
+    opmlUrl: z.string().trim().url({ message: "Invalid OPML URL" }),
 });
 
 const updateBlogInListSchema = z.object({
@@ -281,6 +291,196 @@ app.post(
 
         c.header("HX-Redirect", `/list/${hashId}`);
         return c.text("", 200);
+    },
+);
+
+// POST /lists/:hashId/import/opml - Import an OPML file
+app.post(
+    "/:hashId/import/opml",
+    jwtAuthMiddleware,
+    validateRequest(importOpmlSchema, { parseBody: true }),
+    async (c: Context) => {
+        const user = c.get("user");
+        const formData = c.get("formData");
+        const validationErrors = c.get("flash");
+        const hashId = c.req.param("hashId");
+
+        const list = getListByHashId(hashId);
+        if (!list) {
+            return c.html("List not found", 404);
+        }
+        if (validationErrors) {
+            return c.html(
+                ImportOpmlForm({
+                    list,
+                    messages: validationErrors,
+                    formData,
+                }),
+            );
+        }
+        // Does the logged in user own this list?
+        if (list.userId !== user.id) {
+            return c.html(
+                ImportOpmlForm({
+                    list,
+                    messages: [{ type: "error", message: "Unauthorized" }],
+                    formData,
+                }),
+            );
+        }
+
+        try {
+            // Fetch the OPML file
+            const response = await fetch(formData.opmlUrl);
+            if (!response.ok) {
+                return c.html(
+                    ImportOpmlForm({
+                        list,
+                        messages: [{
+                            type: "error",
+                            message: "Failed to fetch OPML file",
+                        }],
+                        formData,
+                    }),
+                );
+            }
+            const opml = await response.text();
+
+            let doc;
+            try {
+                // Parse the OPML file
+                doc = parseXml(opml);
+            } catch (e: unknown) {
+                console.error("Error parsing OPML: ", e);
+                return c.html(
+                    ImportOpmlForm({
+                        list,
+                        messages: [{
+                            type: "error",
+                            message:
+                                "Error parsing OPML file. Ensure it is valid OPML.",
+                        }],
+                        formData,
+                    }),
+                );
+            }
+
+            // Receives either an array of outlines or a single outline object, which can either contain
+            // the key 'outline' (in which case 'outline' is an array of outlines) or the key '@xmlUrl'
+            // (in which case 'outline' is a single outline object).
+            const recursiveReadOutlines = (outline): string[] => {
+                console.log("Processing outline:", outline);
+                if (Array.isArray(outline)) {
+                    return outline.flatMap((o) => recursiveReadOutlines(o));
+                }
+                if (typeof outline === "object" && outline["outline"]) {
+                    return recursiveReadOutlines(outline["outline"]);
+                }
+                if (typeof outline === "object" && outline["@xmlUrl"]) {
+                    return [outline["@xmlUrl"]];
+                }
+                return [];
+            };
+
+            const opmlDoc = doc.opml as {
+                body: {
+                    outline: Record<string, string> | Record<string, string>[];
+                };
+            };
+            if (
+                !opmlDoc || typeof opmlDoc !== "object" || !opmlDoc.body ||
+                typeof opmlDoc.body !== "object" || !opmlDoc.body.outline ||
+                typeof opmlDoc.body.outline !== "object"
+            ) {
+                return c.html(
+                    ImportOpmlForm({
+                        list,
+                        messages: [{
+                            type: "error",
+                            message: "Invalid OPML file",
+                        }],
+                        formData,
+                    }),
+                );
+            }
+
+            const feedUrls = recursiveReadOutlines(opmlDoc.body.outline);
+            console.log(feedUrls);
+
+            // Add each feed to the list
+            for (const feedUrl of feedUrls) {
+                if (!feedUrl) {
+                    continue;
+                }
+                // Is this one of BlogFlock's own feeds? If so, we don't want to add it for obvious reasons.
+                try {
+                    if (new URL(feedUrl).hostname === "blogflock.com") {
+                        continue;
+                    }
+                } catch (_) {
+                    continue;
+                }
+
+                // Does this blog exist in the database?
+                let existingBlog = getBlogByUrl(feedUrl);
+                if (!existingBlog) {
+                    // No - create a new blog
+                    try {
+                        existingBlog = await createBlog({ feedUrl });
+                    } catch (e) {
+                        console.error(
+                            "Error importing blog during import: ",
+                            e,
+                        );
+                        continue;
+                    }
+                }
+                if (!existingBlog) {
+                    return c.html(
+                        AddBlogForm({
+                            list,
+                            messages: [{
+                                type: "error",
+                                message:
+                                    "An unexpected error occurred. Please try again.",
+                            }],
+                            formData,
+                        }),
+                    );
+                }
+
+                // Does an entry for this blog already exist in the list?
+                // We check this after we add the blog to the database because it's
+                // not the end of the world if we add a blog to the database that
+                // isn't connected to a list, but we need the fully created blog
+                // to know what the URL we're checking is.
+                if (
+                    list.listBlogs?.some((lb) =>
+                        lb.blog.feedUrl === existingBlog.feedUrl
+                    )
+                ) {
+                    continue;
+                }
+
+                addBlogToList({ listId: list.id, blogId: existingBlog.id });
+            }
+
+            c.header("HX-Redirect", `/list/${hashId}`);
+            return c.text("", 200);
+        } catch (e) {
+            console.error("Error importing OPML: ", e);
+            return c.html(
+                ImportOpmlForm({
+                    list,
+                    messages: [{
+                        type: "error",
+                        message:
+                            "An unexpected error occurred. Please try again.",
+                    }],
+                    formData,
+                }),
+            );
+        }
     },
 );
 

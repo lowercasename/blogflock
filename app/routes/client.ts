@@ -16,6 +16,7 @@ import {
     getListByHashId,
     getRandomLists,
     listToAtomFeed,
+    listToOpml,
 } from "../models/List.ts";
 import { UserProfilePage } from "../views/UserProfilePage.tsx";
 import { ListPage } from "../views/ListPage.tsx";
@@ -129,6 +130,17 @@ app.get("/list/:hashId/feed.xml", async (c: Context) => {
     const feed = await listToAtomFeed(list);
     c.header("Content-Type", "application/xml");
     return c.text(feed);
+});
+
+app.get("/list/:hashId/opml.xml", (c: Context) => {
+    const list = getListByHashId(c.req.param("hashId"));
+    if (!list) {
+        return c.text("List not found", 404);
+    }
+
+    const opml = listToOpml(list);
+    c.header("Content-Type", "application/xml");
+    return c.text(opml);
 });
 
 app.get("/user/:username", jwtAuthMiddleware, async (c: Context) => {

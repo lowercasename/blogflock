@@ -265,3 +265,23 @@ export const listToAtomFeed = async (list: List): Promise<string> => {
 
     return atomFeed.build();
 };
+
+export const listToOpml = (list: List): string => {
+    const opml = `<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+    <head>
+        <title>${list.name} - BlogFlock</title>
+        <dateCreated>${list.createdAt.toISOString()}</dateCreated>
+        <dateModified>${(list.listBlogs?.reduce((acc, lb) => { return acc > lb.createdAt ? acc : lb.createdAt; }, new Date(0)).toISOString()) || new Date().toISOString()}</dateModified>
+        <ownerName>${list.user.username}</ownerName>
+        <ownerId>https://blogflock.com/list/${list.hashId}</ownerId>
+    </head>
+    <body>
+        ${list.listBlogs?.map((lb) => `
+            <outline text="${lb.title}" title="${lb.title}" description="${lb.description}" type="rss" xmlUrl="${lb.blog.feedUrl}" htmlUrl="${lb.blog.siteUrl}" />
+        `).join("")}
+    </body>
+</opml>`;
+
+    return opml;
+}

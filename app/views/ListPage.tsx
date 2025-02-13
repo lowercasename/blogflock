@@ -11,14 +11,17 @@ import { Link } from "./components/Link.tsx";
 import { Button, IconButton, IconButtonLink } from "./components/Button.tsx";
 import {
   BinIcon,
+  ClockIcon,
   MinusCircleIcon,
   PenIcon,
   PlusCircleIcon,
   RSSIcon,
 } from "./components/Icons.tsx";
-import { Input, MaxLengthTextarea, Textarea } from "./components/Input.tsx";
+import { Input, MaxLengthTextarea } from "./components/Input.tsx";
 import { UserBadge } from "./components/UserBadge.tsx";
+import { Badge } from "./components/Badge.tsx";
 import { LIST_DESCRIPTION_MAX_LENGTH } from "../routes/lists.ts";
+import { PostingFrequencyForm } from "./SettingsPage.tsx";
 
 export function AddBlogForm({
   list,
@@ -68,6 +71,7 @@ export function ListMeta(
   },
 ) {
   return (
+    <div class="flex flex-col gap-4 order-1 md:order-2" id="list-meta">
     <Card
       title={
         <>
@@ -97,8 +101,6 @@ export function ListMeta(
           </IconButtonLink>
         </div>
       }
-      className="order-1 md:order-2"
-      id="list-meta"
     >
       <div class="flex flex-col gap-4">
         <p x-show="!editing" class="text-gray-600">{list.description}</p>
@@ -146,11 +148,16 @@ export function ListMeta(
             </div>
           </div>
         )}
-
-        <BlogList list={list} isOwner={isOwner} />
-        {isOwner && <AddBlogForm list={list} />}
       </div>
     </Card>
+    <Card title="Filter by posting frequency">
+      <PostingFrequencyForm loggedInUser={loggedInUser || undefined} />
+    </Card>
+    <Card title="Blogs" className="flex flex-col gap-4">
+        <BlogList list={list} isOwner={isOwner} />
+        {isOwner && <AddBlogForm list={list} />}
+    </Card>
+    </div>
   );
 }
 
@@ -201,7 +208,6 @@ export function BlogList({
 }) {
   return (
     <div id="blogs-list">
-      <h2 class="text-lg font-semibold text-orange-800 mb-2">Blogs</h2>
       {isOwner && <FlashMessage messages={flash} />}
       <Stack
         items={list.list_blogs?.map((lb) => (
@@ -233,10 +239,13 @@ export function BlogList({
               </form>
             )}
             <div x-show="!editing">
-              <Link href={lb.blog.site_url!}>
+              <Link href={lb.blog.site_url!} target="_blank">
                 {lb.title || new URL(lb.blog.site_url!).hostname}
               </Link>
               <p class="text-sm text-gray-600 mb-2">{lb.description}</p>
+              <Badge icon={<ClockIcon />} size="sm" className="mb-2">
+                {lb.blog.posts_last_month} {lb.blog.posts_last_month === 1 ? "post" : "posts"} last month
+              </Badge>
             </div>
             {isOwner && (
               <div class="flex gap-2">

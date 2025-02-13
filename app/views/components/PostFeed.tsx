@@ -43,6 +43,10 @@ export const PostFeed = (
       hx-ext="ws"
       ws-connect={list?.hash_id ? `/lists/${list?.hash_id}/ws` : null}
       class={`w-full max-w-5xl mx-auto flex flex-col gap-4 ${className || ""}`}
+      hx-trigger="postingFrequencyUpdated from:body"
+      hx-get={`/posts?page=1${list ? `&list=${list.hash_id}` : ""}`}
+      hx-swap="outerHTML"
+      hx-target="#posts"
     >
       <NewPostsNotification list={list} display={false} />
       {posts.length

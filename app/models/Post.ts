@@ -140,6 +140,7 @@ const postQuery = `
         b.auto_description as blog_auto_description,
         b.auto_author as blog_auto_author,
         b.auto_image_url as blog_auto_image_url,
+        b.posts_last_month as blog_posts_last_month,
         b.last_fetched_at as blog_last_fetched_at,
         b.created_at as blog_created_at
     FROM posts p
@@ -200,6 +201,7 @@ const buildPostsResponse = (rows: unknown[]): Post[] | null => {
         "auto_description",
         "auto_author",
         "auto_image_url",
+        "posts_last_month",
         "last_fetched_at",
         "created_at",
       ],
@@ -234,12 +236,19 @@ export const getPostsForListsIds = async (
   listIds: number[],
   limit: number,
   offset: number,
+  maxPostsPerMonth: number | null = null,
 ): Promise<[Post[], boolean]> => {
-  const { rows } = await db.queryObject(
-    postQuery +
-      "WHERE lb.list_id = ANY($1) ORDER BY p.published_at DESC LIMIT $2 OFFSET $3",
-    [listIds, limit + 1, offset],
-  );
+  const queryText = `${postQuery} 
+    WHERE lb.list_id = ANY($1)
+    ${maxPostsPerMonth === null ? '' : 'AND b.posts_last_month <= $4'}
+    ORDER BY p.published_at DESC
+    LIMIT $2 OFFSET $3`;
+  
+  const params = maxPostsPerMonth === null
+    ? [listIds, limit + 1, offset]
+    : [listIds, limit + 1, offset, maxPostsPerMonth];
+
+  const { rows } = await db.queryObject( queryText, params);
   const posts = buildPostsResponse(rows);
   if (!posts) {
     return [[], false];
@@ -255,12 +264,19 @@ export const getPostsForFollowedListsByUserId = async (
   userId: number,
   limit: number,
   offset: number,
+  maxPostsPerMonth: number | null = null,
 ): Promise<[Post[], boolean]> => {
-  const { rows } = await db.queryObject(
-    postQuery +
-      "JOIN list_followers lf ON lb.list_id = lf.list_id WHERE lf.user_id = $1 ORDER BY p.published_at DESC LIMIT $2 OFFSET $3",
-    [userId, limit + 1, offset],
-  );
+  const queryText = `${postQuery}
+    JOIN list_followers lf ON lb.list_id = lf.list_id
+    WHERE lf.user_id = $1
+    ${maxPostsPerMonth === null ? '' : 'AND b.posts_last_month <= $4'}
+    ORDER BY p.published_at DESC
+    LIMIT $2 OFFSET $3`;
+  const params = maxPostsPerMonth === null
+    ? [userId, limit + 1, offset]
+    : [userId, limit + 1, offset, maxPostsPerMonth];
+
+  const { rows } = await db.queryObject( queryText, params );
   const posts = buildPostsResponse(rows);
   if (!posts) {
     return [[], false];

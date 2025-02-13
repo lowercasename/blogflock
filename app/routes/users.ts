@@ -6,6 +6,7 @@ import { validateRequest } from "../lib/validateRequest.ts";
 import {
   emailIsAvailable,
   getUserByUsername,
+  PostingFrequencyEnum,
   updateEmail,
   updateUser,
 } from "../models/User.ts";
@@ -13,6 +14,7 @@ import {
   BioForm,
   EmailForm,
   PasswordForm,
+  PostingFrequencyForm,
   UsernameForm,
 } from "../views/SettingsPage.tsx";
 import { compare, hash } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
@@ -44,6 +46,10 @@ const updatePasswordSchema = z.object({
 const updateEmailSchema = z.object({
   email: emailSchema,
 });
+
+const updateSettingsSchema = z.object({
+  setting_posting_frequency: PostingFrequencyEnum
+}).partial();
 
 app.patch(
   "/bio",
@@ -246,5 +252,38 @@ app.patch(
     return c.text("", 200);
   },
 );
+
+app.patch("/settings", jwtAuthMiddleware, validateRequest(updateSettingsSchema, { parseBody: true }), async (c: Context) => {
+  const formData = updateSettingsSchema.parse(c.get("formData"));
+  const loggedInUser = c.get("user");
+  const validationErrors = c.get("flash");
+  if (validationErrors) {
+    return c.html(PostingFrequencyForm({ loggedInUser, messages: validationErrors }));
+  }
+
+  // Update the user's settings
+  const updatedUser = await updateUser(loggedInUser.id, {
+    ...loggedInUser,
+    setting_posting_frequency: formData.setting_posting_frequency || loggedInUser.setting_posting_frequency,
+  });
+  if (!updatedUser) {
+    return c.html(
+      PostingFrequencyForm({
+        loggedInUser,
+        messages: [{
+          type: "error",
+          message: "An unexpected error occurred. Please try again.",
+        }],
+      }),
+    );
+  }
+  
+  c.header("HX-Trigger", "postingFrequencyUpdated");
+  return c.html(
+    PostingFrequencyForm({
+      loggedInUser: updatedUser,
+    }),
+  );
+});
 
 export default app;

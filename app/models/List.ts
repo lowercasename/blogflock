@@ -65,6 +65,7 @@ const listQuery = `
         b.auto_description as blog_auto_description,
         b.auto_author as blog_auto_author,
         b.auto_image_url as blog_auto_image_url,
+        b.posts_last_month as blog_posts_last_month,
         b.last_fetched_at as blog_last_fetched_at,
         b.created_at as blog_created_at
     FROM lists l
@@ -133,6 +134,7 @@ const buildListsResponse = (rows: unknown[]): List[] | null => {
         "auto_description",
         "auto_image_url",
         "auto_author",
+        "posts_last_month",
         "last_fetched_at",
         "created_at",
         "hash_id",

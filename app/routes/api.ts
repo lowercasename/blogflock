@@ -1,5 +1,8 @@
 import { Context, Hono } from "hono";
-import { getBlogs, updateBlogLastFetchedAt } from "../models/Blog.ts";
+import {
+  getBlogs,
+  updateBlogStats,
+} from "../models/Blog.ts";
 import { tokenAuthMiddleware } from "../lib/auth.ts";
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import { validateRequest } from "../lib/validateRequest.ts";
@@ -33,7 +36,7 @@ app.post(
     const json = c.get("formData");
     const existingPost = await getPostByGuid(json.guid, Number(json.blogId));
     if (existingPost) {
-      updateBlogLastFetchedAt(Number(json.blogId));
+      updateBlogStats(Number(json.blogId));
       return c.json({ message: "Post already exists" });
     }
     const newPost = await createPost({
@@ -44,7 +47,7 @@ app.post(
       published_at: new Date(json.publishedAt),
       guid: json.guid,
     });
-    updateBlogLastFetchedAt(Number(json.blogId));
+    updateBlogStats(Number(json.blogId));
     return c.json(newPost);
   },
 );

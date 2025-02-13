@@ -23,6 +23,8 @@ export type PublicUserFieldsWithRenderedBio = z.infer<
   typeof PublicUserFieldsWithRenderedBioSchema
 >;
 
+export const PostingFrequencyEnum = z.enum(["quiet", "occasional", "frequent"]);
+
 export const UserSchema = z.object({
   id: z.number(),
   username: z.string(),
@@ -37,6 +39,7 @@ export const UserSchema = z.object({
   email_verification_token: z.string().nullable(),
   email_verification_token_expires_at: z.coerce.date().nullable(),
   hash_id: z.string().nullable(),
+  setting_posting_frequency: PostingFrequencyEnum,
 });
 
 export type UserObject = z.infer<typeof UserSchema>;
@@ -49,7 +52,7 @@ export type CreateUser = Pick<
 
 export type UpdateUser = Pick<
   User,
-  "username" | "email" | "avatar_url" | "bio" | "password_hash"
+  "username" | "email" | "avatar_url" | "bio" | "password_hash" | "setting_posting_frequency"
 >;
 
 export type JWTUser = Pick<User, "id" | "email">;
@@ -262,6 +265,12 @@ export const getUserByUsername = async (
   return await PublicUserFieldsWithRenderedBioSchema.parseAsync(user);
 };
 
+export const postingFrequencyLabelToNumber = {
+  quiet: 4,
+  occasional: 8,
+  frequent: null
+}
+
 export const updateUser = async (
   id: number,
   user: UpdateUser,
@@ -272,7 +281,8 @@ export const updateUser = async (
             username = ${user.username}, 
             email = ${user.email}, 
             avatar_url = ${user.avatar_url}, 
-            bio = ${user.bio} 
+            bio = ${user.bio},
+            setting_posting_frequency = ${user.setting_posting_frequency}
         WHERE id = ${id}
     `;
 

@@ -1,8 +1,6 @@
 import { Post as PostType } from "../../models/Post.ts";
 import { Card } from "./Card.tsx";
 import { ScrollIcon, UserIcon } from "./Icons.tsx";
-import { Link } from "./Link.tsx";
-import { UserBadge } from "./UserBadge.tsx";
 
 const PostContent = ({ post }: { post: PostType }) => {
   if (post.short_content.type === "text") {
@@ -55,7 +53,7 @@ export const Post = ({ post }: { post: PostType }) => (
         <PostContent post={post} />
       </main>
       <footer>
-        <div class="inline-flex items-center rounded-full border border-orange-200 text-sm">
+        <div class="inline-flex items-center rounded-full border border-orange-200 text-sm overflow-hidden">
           <a
             class="px-2 border-r border-orange-200 hover:bg-orange-50 text-gray-600"
             href={`/list/${post.list_blog.list.hash_id}`}

@@ -1,10 +1,10 @@
 -- migrate:up
-alter table blogs add column autoAuthor text;
-alter table list_blogs add column customAuthor text;
+ALTER TABLE blogs ADD COLUMN auto_author TEXT;
+ALTER TABLE list_blogs ADD COLUMN custom_author TEXT;
 
-update blogs set autoAuthor = '';
-update list_blogs set customAuthor = '';
+UPDATE blogs SET auto_author = '';
+UPDATE list_blogs SET custom_author = '';
 
 -- migrate:down
-alter table blogs drop column autoAuthor;
-alter table list_blogs drop column customAuthor;
+ALTER TABLE blogs DROP COLUMN auto_author;
+ALTER TABLE list_blogs DROP COLUMN custom_author;

@@ -1,6 +1,6 @@
-import Hashids from 'npm:hashids';
+import Hashids from "npm:hashids";
 
-const hashids = new Hashids('Blogflock', 5);
+const hashids = new Hashids("Blogflock", 5);
 
 export const encode = (id: number) => hashids.encode(id);
 

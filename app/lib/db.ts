@@ -1,43 +1,71 @@
 import { hash } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
-import { DB } from "https://deno.land/x/sqlite@v3.9.1/mod.ts";
+import { Client } from "https://deno.land/x/postgres/mod.ts";
 import { encode } from "./hashids.ts";
 
-export const db = new DB("../db/database.sqlite3");
+console.log(Deno.env.get("POSTGRES_USER"));
+console.log(Deno.env.get("POSTGRES_PASSWORD"));
+console.log(Deno.env.get("POSTGRES_DB"));
+console.log(Deno.env.get("POSTGRES_HOST"));
+console.log(Deno.env.get("POSTGRES_PORT"));
 
-export const initDB = async () => {
-    const hasUsers = db.query("SELECT COUNT(*) FROM users")[0][0];
-    if (!hasUsers) {
-        const password = await hash("demo");
-        db.query(
-            `
-            INSERT INTO users (username, email, passwordHash, emailVerified, hashId)
-            VALUES ('demo', 'mail+demo@raphaelkabo.com', ?, 1, ?)
-        `,
-            [password, encode(1)],
-        );
-    }
+export const db = new Client({
+  user: Deno.env.get("POSTGRES_USER"),
+  password: Deno.env.get("POSTGRES_PASSWORD"),
+  database: Deno.env.get("POSTGRES_DB"),
+  hostname: Deno.env.get("POSTGRES_HOST"),
+  port: Deno.env.get("POSTGRES_PORT"),
+});
+await db.connect();
+
+export const query = async <T>(
+  q: string | TemplateStringsArray,
+  ...args: unknown[]
+): Promise<T[]> => {
+  if (typeof q === "string") {
+    return (await db.queryObject<T>(q)).rows;
+  }
+  return (await db.queryObject<T>(q, ...args)).rows;
 };
 
-export const ensureHashIds = () => {
-    const users = db.query("SELECT id FROM users");
-    for (const user of users) {
-        db.query("UPDATE users SET hashId = ? WHERE id = ?", [
-            encode(user[0] as number),
-            user[0] as number,
-        ]);
-    }
-    const blogs = db.query("SELECT id FROM blogs");
-    for (const blog of blogs) {
-        db.query("UPDATE blogs SET hashId = ? WHERE id = ?", [
-            encode(blog[0] as number),
-            blog[0] as number,
-        ]);
-    }
-    const lists = db.query("SELECT id FROM lists");
-    for (const list of lists) {
-        db.query("UPDATE lists SET hashId = ? WHERE id = ?", [
-            encode(list[0] as number),
-            list[0] as number,
-        ]);
-    }
+export const queryOne = async <T>(
+  q: string | TemplateStringsArray,
+  ...args: unknown[]
+): Promise<T | null> => {
+  const result = await query<T>(q, ...args);
+  return result.length > 0 ? result[0] : null;
+};
+
+export const initDB = async () => {
+  const hasUsers =
+    (await db.queryObject("SELECT 1 FROM users LIMIT 1")).rows.length > 0;
+  if (!hasUsers) {
+    const password = await hash("demo");
+    await db.queryObject`
+            INSERT INTO users (username, email, password_hash, email_verified, hash_id)
+            VALUES ('demo', 'demo@example.com', ${password}, TRUE, ${
+      encode(1)
+    });
+        `;
+  }
+};
+
+export const ensureHashIds = async () => {
+  const users = await query<{ id: number }>("SELECT id FROM users");
+  for (const user of users) {
+    await db.queryObject`UPDATE users SET hash_id = ${
+      encode(user.id)
+    } WHERE id = ${user.id}`;
+  }
+  const blogs = await query<{ id: number }>("SELECT id FROM blogs");
+  for (const blog of blogs) {
+    await db.queryObject`UPDATE blogs SET hash_id = ${
+      encode(blog.id)
+    } WHERE id = ${blog.id}`;
+  }
+  const lists = await query<{ id: number }>("SELECT id FROM lists");
+  for (const list of lists) {
+    await db.queryObject`UPDATE lists SET hash_id = ${
+      encode(list.id)
+    } WHERE id = ${list.id}`;
+  }
 };

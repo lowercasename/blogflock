@@ -1,13 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400..800;1,400..800&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 .markdown {
-    p {
-        @apply mb-1;
-    }
-    a {
-        @apply font-semibold text-orange-500 hover:text-orange-600;
-    }
+  p {
+    @apply mb-1;
+  }
+  a {
+    @apply font-semibold text-orange-500 hover:text-orange-600;
+  }
 }

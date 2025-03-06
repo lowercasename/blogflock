@@ -1,9 +1,9 @@
 -- migrate:up
-alter table users add column hashId text;
-alter table blogs add column hashId text;
-alter table lists add column hashId text;
+ALTER TABLE users ADD COLUMN hash_id TEXT;
+ALTER TABLE blogs ADD COLUMN hash_id TEXT;
+ALTER TABLE lists ADD COLUMN hash_id TEXT;
 
 -- migrate:down
-alter table users drop column hashId;
-alter table blogs drop column hashId;
-alter table lists drop column hashId;
+ALTER TABLE users DROP COLUMN hash_id;
+ALTER TABLE blogs DROP COLUMN hash_id;
+ALTER TABLE lists DROP COLUMN hash_id;

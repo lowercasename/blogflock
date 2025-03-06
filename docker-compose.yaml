@@ -1,11 +1,8 @@
 services:
   app:
-    container_name: blogflock-app
     build:
       context: ./app
       dockerfile: Dockerfile
-    ports:
-      - "8021:8021"
     env_file:
       - .env
     volumes:
@@ -14,6 +11,45 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  caddy:
+    container_name: blogflock-caddy
+    image: caddy:2-alpine
+    ports:
+      - "8021:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: blogflock-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5400:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   feed-worker:
     container_name: blogflock-feed-worker
@@ -33,9 +69,9 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "8090:8090"
 
@@ -60,9 +96,9 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "8080:8080"
 
@@ -79,9 +115,9 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   prometheus:
     container_name: blogflock-prometheus
@@ -117,8 +153,6 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
-    # environment:
-    #   - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
     restart: unless-stopped
     depends_on:
       - prometheus
@@ -127,3 +161,6 @@ volumes:
   rabbitmq_data:
   prometheus_data:
   grafana_data:
+  caddy_data:
+  caddy_config:
+  postgres_data:

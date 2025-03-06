@@ -1,0 +1,10 @@
+:80 {
+    reverse_proxy app:8021 {
+      lb_policy round_robin
+    }
+
+    # Health check endpoint
+    handle /caddy-health {
+        respond "Healthy" 200
+    }
+}

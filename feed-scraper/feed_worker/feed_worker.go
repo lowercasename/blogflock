@@ -16,24 +16,24 @@ import (
 )
 
 type Feed struct {
-	AutoDescription string `json:"autoDescription"`
-	AutoImageUrl    string `json:"autoImageUrl"`
-	AutoTitle       string `json:"autoTitle"`
-	CreatedAt       string `json:"createdAt"`
-	FeedUrl         string `json:"feedUrl"`
-	HashId          string `json:"hashId"`
+	AutoDescription string `json:"auto_description"`
+	AutoImageUrl    string `json:"auto_image_url"`
+	AutoTitle       string `json:"auto_title"`
+	CreatedAt       string `json:"created_at"`
+	FeedUrl         string `json:"feed_url"`
+	HashId          string `json:"hash_id"`
 	ID              int    `json:"id"`
-	LastFetchedAt   string `json:"lastFetchedAt"`
-	SiteUrl         string `json:"siteUrl"`
+	LastFetchedAt   string `json:"last_fetched_at"`
+	SiteUrl         string `json:"site_url"`
 }
 
 type Post struct {
 	Title       string `json:"title"`
 	Content     string `json:"content"`
 	URL         string `json:"url"`
-	PublishedAt string `json:"publishedAt"`
+	PublishedAt string `json:"published_at"`
 	GUID        string `json:"guid"`
-	BlogID      int    `json:"blogId"`
+	BlogID      int    `json:"blog_id"`
 }
 
 type AppMetrics struct {

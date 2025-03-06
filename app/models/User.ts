@@ -1,246 +1,280 @@
-import { RowObject } from "https://deno.land/x/sqlite@v3.8/mod.ts";
 import { compare, hash } from "https://deno.land/x/bcrypt/mod.ts";
-import { db } from "../lib/db.ts";
+import { query, queryOne } from "../lib/db.ts";
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import { encode } from "../lib/hashids.ts";
 import { markdownToHtml } from "../lib/text.ts";
 
 export const PublicUserFieldsSchema = z.object({
-    id: z.number(),
-    username: z.string(),
-    avatarUrl: z.string().nullable(),
-    bio: z.string().nullable(),
-    hashId: z.string(),
+  id: z.number(),
+  username: z.string(),
+  avatar_url: z.string().nullable(),
+  bio: z.string().nullable(),
+  hash_id: z.string(),
 });
 
 export const PublicUserFieldsWithRenderedBioSchema = PublicUserFieldsSchema
-    .transform(async (data) => ({
-        ...data,
-        renderedBio: data.bio ? await markdownToHtml(data.bio) : "",
-    }));
+  .transform(async (data) => ({
+    ...data,
+    rendered_bio: data.bio ? await markdownToHtml(data.bio) : "",
+  }));
 
 export type PublicUserFields = z.infer<typeof PublicUserFieldsSchema>;
 export type PublicUserFieldsWithRenderedBio = z.infer<
-    typeof PublicUserFieldsWithRenderedBioSchema
+  typeof PublicUserFieldsWithRenderedBioSchema
 >;
 
 export const UserSchema = z.object({
-    id: z.number(),
-    username: z.string(),
-    email: z.string().email(),
-    passwordHash: z.string(),
-    createdAt: z.coerce.date(),
-    avatarUrl: z.string().nullable(),
-    bio: z.string().nullable(),
-    passwordResetToken: z.string().nullable(),
-    passwordResetTokenExpiresAt: z.coerce.date().nullable(),
-    emailVerified: z.boolean(),
-    emailVerificationToken: z.string().nullable(),
-    emailVerificationTokenExpiresAt: z.coerce.date().nullable(),
+  id: z.number(),
+  username: z.string(),
+  email: z.string().email(),
+  password_hash: z.string(),
+  created_at: z.coerce.date(),
+  avatar_url: z.string().nullable(),
+  bio: z.string().nullable(),
+  password_reset_token: z.string().nullable(),
+  password_reset_token_expires_at: z.coerce.date().nullable(),
+  email_verified: z.boolean(),
+  email_verification_token: z.string().nullable(),
+  email_verification_token_expires_at: z.coerce.date().nullable(),
+  hash_id: z.string().nullable(),
 });
 
 export type UserObject = z.infer<typeof UserSchema>;
-
-export interface User extends UserObject, RowObject {}
+export type User = UserObject;
 
 export type CreateUser = Pick<
-    User,
-    "username" | "email" | "passwordHash" | "emailVerificationToken"
+  User,
+  "username" | "email" | "password_hash" | "email_verification_token"
 >;
 
 export type UpdateUser = Pick<
-    User,
-    "username" | "email" | "avatarUrl" | "bio" | "passwordHash"
+  User,
+  "username" | "email" | "avatar_url" | "bio" | "password_hash"
 >;
 
 export type JWTUser = Pick<User, "id" | "email">;
 
 export const verifyPassword = async (
-    { email, password }: { email: string; password: string },
+  { email, password }: { email: string; password: string },
 ): Promise<User | null> => {
-    const user = db.queryEntries<User>(`SELECT * FROM users WHERE email = ?`, [
-        email,
-    ])?.[0];
-    if (!user) {
-        return null;
-    }
-
-    // Is email verified?
-    if (!user.emailVerified) {
-        return null;
-    }
-
-    // Verify password
-    if (await compare(password, user.passwordHash)) {
-        return user;
-    }
-
+  const user = await queryOne<User>`SELECT * FROM users WHERE email = ${email}`;
+  if (!user) {
     return null;
+  }
+
+  // Is email verified?
+  if (!user.email_verified) {
+    return null;
+  }
+
+  // Verify password
+  if (await compare(password, user.password_hash)) {
+    return user;
+  }
+
+  return null;
 };
 
 // Check if the username is already taken. Returns true if the username is available.
-export const usernameIsAvailable = (username: string): boolean => {
-    return !db.queryEntries<User>(`SELECT * FROM users WHERE username = ?`, [
-        username,
-    ])?.[0];
+export const usernameIsAvailable = async (
+  username: string,
+): Promise<boolean> => {
+  const user = await queryOne<
+    User
+  >`SELECT id FROM users WHERE username = ${username}`;
+  return !user;
 };
 
-export const emailIsAvailable = (email: string): boolean => {
-    return !db.queryEntries<User>(`SELECT * FROM users WHERE email = ?`, [
-        email,
-    ])?.[0];
+export const emailIsAvailable = async (email: string): Promise<boolean> => {
+  const user = await queryOne<
+    User
+  >`SELECT id FROM users WHERE email = ${email}`;
+  return !user;
 };
 
-export const createUser = async (user: CreateUser): Promise<User> => {
-    const passwordHash = await hash(user.passwordHash);
-    db.query(
-        `
-        INSERT INTO users (username, email, passwordHash, emailVerificationToken, emailVerificationTokenExpiresAt)
-        VALUES (:username, :email, :passwordHash, :emailVerificationToken, :emailVerificationTokenExpiresAt)
-        `,
-        {
-            ...user,
-            passwordHash,
-            emailVerificationTokenExpiresAt: new Date(
-                Date.now() + 1000 * 60 * 60 * 24,
-            ), // 24 hours
-        },
-    );
-    db.query("UPDATE users SET hashId = ? WHERE id = ?", [
-        encode(db.lastInsertRowId),
-        db.lastInsertRowId,
-    ]);
-    return db.queryEntries<User>(`SELECT * FROM users WHERE id = ?`, [
-        db.lastInsertRowId,
-    ])[0];
+export const createUser = async (user: CreateUser): Promise<User | null> => {
+  const passwordHash = await hash(user.password_hash);
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+
+  const result = await queryOne<{ id: number }>`
+        INSERT INTO users (
+            username, 
+            email, 
+            password_hash, 
+            email_verification_token, 
+            email_verification_token_expires_at
+        )
+        VALUES (
+            ${user.username}, 
+            ${user.email}, 
+            ${passwordHash}, 
+            ${user.email_verification_token}, 
+            ${expiresAt.toISOString()}
+        )
+        RETURNING id
+    `;
+
+  if (!result) {
+    return null;
+  }
+
+  await query`UPDATE users SET hash_id = ${
+    encode(result.id)
+  } WHERE id = ${result.id}`;
+  return await getUserById(result.id);
 };
 
-export const resetEmailVerificationToken = (
-    email: string,
-    token: string,
-): User | null => {
-    const user = db.queryEntries<User>(`SELECT * FROM users WHERE email = ?`, [
-        email,
-    ])?.[0];
-    if (!user) {
-        return null;
-    }
+export const resetEmailVerificationToken = async (
+  email: string,
+  token: string,
+): Promise<User | null> => {
+  const user = await queryOne<User>`SELECT * FROM users WHERE email = ${email}`;
+  if (!user) {
+    return null;
+  }
 
-    db.query(
-        `UPDATE users SET emailVerificationToken = ?, emailVerificationTokenExpiresAt = ? WHERE id = ?`,
-        [token, new Date(Date.now() + 1000 * 60 * 60 * 24), user.id],
-    );
-    return user;
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+  await query`
+        UPDATE users 
+        SET 
+            email_verification_token = ${token}, 
+            email_verification_token_expires_at = ${expiresAt.toISOString()} 
+        WHERE id = ${user.id}
+    `;
+
+  return await getUserById(user.id);
 };
 
-export const verifyEmailToken = (token: string): User | null => {
-    const user = db.queryEntries<User>(
-        `SELECT * FROM users WHERE emailVerificationToken = ? AND emailVerificationTokenExpiresAt > ?`,
-        [token, new Date()],
-    )?.[0];
-    if (!user) {
-        return null;
-    }
+export const verifyEmailToken = async (token: string): Promise<User | null> => {
+  const now = new Date();
+  const user = await queryOne<User>`
+        SELECT * FROM users 
+        WHERE email_verification_token = ${token} 
+        AND email_verification_token_expires_at > ${now.toISOString()}
+    `;
 
-    db.query(
-        `UPDATE users SET emailVerified = 1, emailVerificationToken = NULL, emailVerificationTokenExpiresAt = NULL WHERE id = ?`,
-        [user.id],
-    );
-    return user;
+  if (!user) {
+    return null;
+  }
+
+  await query`
+        UPDATE users 
+        SET 
+            email_verified = TRUE, 
+            email_verification_token = NULL, 
+            email_verification_token_expires_at = NULL 
+        WHERE id = ${user.id}
+    `;
+
+  return await getUserById(user.id);
 };
 
-export const setForgotPasswordToken = (
-    email: string,
-    token: string,
-): User | null => {
-    const user = db.queryEntries<User>(`SELECT * FROM users WHERE email = ?`, [
-        email,
-    ])?.[0];
-    if (!user) {
-        return null;
-    }
+export const setForgotPasswordToken = async (
+  email: string,
+  token: string,
+): Promise<User | null> => {
+  const user = await queryOne<User>`SELECT * FROM users WHERE email = ${email}`;
+  if (!user) {
+    return null;
+  }
 
-    db.query(
-        `UPDATE users SET passwordResetToken = ?, passwordResetTokenExpiresAt = ? WHERE id = ?`,
-        [
-            token,
-            new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hours
-            user.id,
-        ],
-    );
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+  await query`
+        UPDATE users 
+        SET 
+            password_reset_token = ${token}, 
+            password_reset_token_expires_at = ${expiresAt.toISOString()} 
+        WHERE id = ${user.id}
+    `;
 
-    return user;
+  return await getUserById(user.id);
 };
 
-export const validateForgotPasswordToken = (
-    token: string,
-): User | null => {
-    const user = db.queryEntries<User>(
-        `SELECT * FROM users WHERE passwordResetToken = ? AND passwordResetTokenExpiresAt > ?`,
-        [token, new Date()],
-    )?.[0];
-    return user;
+export const validateForgotPasswordToken = async (
+  token: string,
+): Promise<User | null> => {
+  const now = new Date();
+  return await queryOne<User>`
+        SELECT * FROM users 
+        WHERE password_reset_token = ${token} 
+        AND password_reset_token_expires_at > ${now.toISOString()}
+    `;
 };
 
 export const resetPassword = async (
-    token: string,
-    password: string,
+  token: string,
+  password: string,
 ): Promise<User | null> => {
-    const user = validateForgotPasswordToken(token);
-    if (!user) {
-        return null;
-    }
+  const user = await validateForgotPasswordToken(token);
+  if (!user) {
+    return null;
+  }
 
-    const passwordHash = await hash(password);
-    // Resetting the password is also a kind of email verification, so we'll mark the email as verified.
-    db.query(
-        `UPDATE users SET passwordHash = ?, passwordResetToken = NULL, passwordResetTokenExpiresAt = NULL, emailVerified = 1, emailVerificationToken = NULL, emailVerificationTokenExpiresAt = NULL WHERE id = ?`,
-        [passwordHash, user.id],
-    );
+  const passwordHash = await hash(password);
+  // Resetting the password is also a kind of email verification, so we'll mark the email as verified.
+  await query`
+        UPDATE users 
+        SET 
+            password_hash = ${passwordHash}, 
+            password_reset_token = NULL, 
+            password_reset_token_expires_at = NULL, 
+            email_verified = TRUE, 
+            email_verification_token = NULL, 
+            email_verification_token_expires_at = NULL 
+        WHERE id = ${user.id}
+    `;
 
-    return user;
+  return await getUserById(user.id);
 };
 
-export const updateEmail = (
-    id: number,
-    email: string,
-    token: string,
-): User | null => {
-    db.query(
-        `UPDATE users SET email = ?, emailVerified = 0, emailVerificationToken = ?, emailVerificationTokenExpiresAt = ? WHERE id = ?`,
-        [
-            email,
-            token,
-            new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hours
-            id,
-        ],
-    );
-    return getUserById(id);
+export const updateEmail = async (
+  id: number,
+  email: string,
+  token: string,
+): Promise<User | null> => {
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+  await query`
+        UPDATE users 
+        SET 
+            email = ${email}, 
+            email_verified = FALSE, 
+            email_verification_token = ${token}, 
+            email_verification_token_expires_at = ${expiresAt.toISOString()} 
+        WHERE id = ${id}
+    `;
+
+  return await getUserById(id);
 };
 
-export const getUserById = (id: number): User | null => {
-    return db.queryEntries<User>(`SELECT * FROM users WHERE id = ?`, [id])?.[0];
+export const getUserById = async (id: number): Promise<User | null> => {
+  return await queryOne<User>`SELECT * FROM users WHERE id = ${id}`;
 };
 
 export const getUserByUsername = async (
-    username: string,
+  username: string,
 ): Promise<PublicUserFieldsWithRenderedBio | null> => {
-    const user = db.queryEntries<User>(
-        `SELECT * FROM users WHERE username = ?`,
-        [
-            username,
-        ],
-    )?.[0];
-    if (!user) {
-        return null;
-    }
-    return await PublicUserFieldsWithRenderedBioSchema.parseAsync(user);
+  const user = await queryOne<
+    User
+  >`SELECT * FROM users WHERE username = ${username}`;
+  if (!user) {
+    return null;
+  }
+  return await PublicUserFieldsWithRenderedBioSchema.parseAsync(user);
 };
 
-export const updateUser = (id: number, user: UpdateUser): User | null => {
-    db.query(
-        `UPDATE users SET username = ?, email = ?, avatarUrl = ?, bio = ? WHERE id = ?`,
-        [user.username, user.email, user.avatarUrl, user.bio, id],
-    );
-    return getUserById(id);
+export const updateUser = async (
+  id: number,
+  user: UpdateUser,
+): Promise<User | null> => {
+  await query`
+        UPDATE users 
+        SET 
+            username = ${user.username}, 
+            email = ${user.email}, 
+            avatar_url = ${user.avatar_url}, 
+            bio = ${user.bio} 
+        WHERE id = ${id}
+    `;
+
+  return await getUserById(id);
 };

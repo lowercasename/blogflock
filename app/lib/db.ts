@@ -2,12 +2,6 @@ import { hash } from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 import { encode } from "./hashids.ts";
 
-console.log(Deno.env.get("POSTGRES_USER"));
-console.log(Deno.env.get("POSTGRES_PASSWORD"));
-console.log(Deno.env.get("POSTGRES_DB"));
-console.log(Deno.env.get("POSTGRES_HOST"));
-console.log(Deno.env.get("POSTGRES_PORT"));
-
 export const db = new Client({
   user: Deno.env.get("POSTGRES_USER"),
   password: Deno.env.get("POSTGRES_PASSWORD"),

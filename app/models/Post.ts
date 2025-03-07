@@ -150,7 +150,7 @@ const postQuery = `
     LEFT JOIN users u ON l.user_id = u.id
 `;
 
-const buildPostsResponse = (rows: unknown[]): Post[] | null => {
+const buildPostsResponse = async (rows: unknown[]): Promise<Post[] | null> => {
   if (!rows || rows.length === 0) {
     return null;
   }
@@ -229,7 +229,7 @@ const buildPostsResponse = (rows: unknown[]): Post[] | null => {
     },
   ];
   const result = joinjs.default.map(rows, resultMaps, "postMap", "post_");
-  return z.array(PostSchema).parse(result);
+  return await z.array(PostSchema).parseAsync(result);
 };
 
 export const getPostsForListsIds = async (
@@ -249,7 +249,7 @@ export const getPostsForListsIds = async (
     : [listIds, limit + 1, offset, maxPostsPerMonth];
 
   const { rows } = await db.queryObject(queryText, params);
-  const posts = buildPostsResponse(rows);
+  const posts = await buildPostsResponse(rows);
   if (!posts) {
     return [[], false];
   }
@@ -277,7 +277,7 @@ export const getPostsForFollowedListsByUserId = async (
     : [userId, limit + 1, offset, maxPostsPerMonth];
 
   const { rows } = await db.queryObject(queryText, params);
-  const posts = buildPostsResponse(rows);
+  const posts = await buildPostsResponse(rows);
   if (!posts) {
     return [[], false];
   }

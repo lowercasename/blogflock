@@ -7,6 +7,7 @@ import { shuffleArray } from "../lib/util.ts";
 import { ListBlogSchema } from "./ListBlog.ts";
 import { Atom } from "jsr:@feed/feed";
 import { getPostsForListsIds } from "./Post.ts";
+import { markdownToHtml } from "../lib/text.ts";
 
 export const ListSchema = z.object({
   id: z.number(),
@@ -25,7 +26,12 @@ export const ListSchema = z.object({
     }),
   ).optional(),
   list_blogs: z.array(ListBlogSchema).optional(),
-});
+}).transform(async (data) => ({
+  ...data,
+  rendered_description: data.description
+    ? await markdownToHtml(data.description)
+    : "",
+}));
 
 export type ListObject = z.infer<typeof ListSchema>;
 export type List = ListObject;
@@ -76,7 +82,7 @@ const listQuery = `
     LEFT JOIN blogs b ON lb.blog_id = b.id
 `;
 
-const buildListsResponse = (rows: unknown[]): List[] | null => {
+const buildListsResponse = async (rows: unknown[]): Promise<List[] | null> => {
   if (!rows || rows.length === 0) {
     return null;
   }
@@ -152,12 +158,12 @@ const buildListsResponse = (rows: unknown[]): List[] | null => {
     },
   ];
   const result = joinjs.default.map(rows, resultMaps, "listMap", "list_");
-  return z.array(ListSchema).parse(result);
+  return await z.array(ListSchema).parseAsync(result);
 };
 
 export const getListById = async (id: number): Promise<List | null> => {
   const { rows } = await db.queryObject(listQuery + " WHERE l.id = $1", [id]);
-  const lists = buildListsResponse(rows);
+  const lists = await buildListsResponse(rows);
   return lists ? lists[0] : null;
 };
 
@@ -167,7 +173,7 @@ export const getCreatedListsByUserId = async (
   const { rows } = await db.queryObject(listQuery + " WHERE l.user_id = $1", [
     userId,
   ]);
-  return buildListsResponse(rows) || [];
+  return await buildListsResponse(rows) || [];
 };
 
 export const getAllListsContainingBlog = async (
@@ -177,7 +183,7 @@ export const getAllListsContainingBlog = async (
     listQuery + " WHERE lb.blog_id = $1",
     [blogId],
   );
-  return buildListsResponse(rows) || [];
+  return await buildListsResponse(rows) || [];
 };
 
 export const getFollowedListsByUserId = async (
@@ -187,12 +193,12 @@ export const getFollowedListsByUserId = async (
     listQuery + " WHERE lf.user_id = $1",
     [userId],
   );
-  return buildListsResponse(rows) || [];
+  return await buildListsResponse(rows) || [];
 };
 
 export const getAllLists = async (): Promise<List[]> => {
   const { rows } = await db.queryObject(listQuery);
-  return buildListsResponse(rows) || [];
+  return await buildListsResponse(rows) || [];
 };
 
 export const getAllListsByFilter = async (
@@ -205,7 +211,7 @@ export const getAllListsByFilter = async (
       "WHERE l.name LIKE $1 OR l.description LIKE $2 ORDER BY blog_last_fetched_at DESC",
     [`%${filter}%`, `%${filter}%`],
   );
-  const lists = buildListsResponse(rows);
+  const lists = await buildListsResponse(rows);
   if (!lists) {
     return [[], false];
   }

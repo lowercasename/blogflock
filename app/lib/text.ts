@@ -24,30 +24,30 @@ export function createExcerpt(html: string, wordCount = 50): string {
   if (!clonedDoc) {
     throw new Error("Failed to create output document");
   }
-  
+
   const rootContainer = clonedDoc.querySelector("div");
   if (!rootContainer) {
     throw new Error("Failed to create output container");
   }
-  
+
   // State
   let currentWordCount = 0;
   let excerptComplete = false;
-  
+
   function walkNode(node: Node, parentNode: Node, isAnchor = false): void {
     // Fully process anchor tags, even if over word count
     if (excerptComplete && !isAnchor) return;
 
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent || "";
-      const words = text.trim().split(/\s+/).filter(word => word.length > 0);
-      
+      const words = text.trim().split(/\s+/).filter((word) => word.length > 0);
+
       if (words.length === 0) {
         // Just whitespace so copy the original text
         parentNode.appendChild(clonedDoc.createTextNode(text));
         return;
       }
-      
+
       if (currentWordCount + words.length <= wordCount) {
         // Text fits completely inside the word count
         parentNode.appendChild(clonedDoc.createTextNode(text));
@@ -61,32 +61,32 @@ export function createExcerpt(html: string, wordCount = 50): string {
         }
 
         const includedWords = words.slice(0, remainingWords);
-        
+
         // Preserve whitespace prefix
         const prefix = text.match(/^\s*/)?.[0] || "";
-        
+
         // Create truncated text node
         const truncatedText = prefix + includedWords.join(" ");
         parentNode.appendChild(clonedDoc.createTextNode(truncatedText));
-        
+
         if (!isAnchor) {
           parentNode.appendChild(clonedDoc.createTextNode("…"));
         }
-        
+
         currentWordCount += remainingWords;
         excerptComplete = true;
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       const element = node as Element;
       const tagName = element.tagName.toLowerCase();
-      
+
       if (["img", "br", "hr"].includes(tagName)) {
         parentNode.appendChild(element.cloneNode());
         return;
       }
 
       const newElement = clonedDoc.createElement(tagName);
-      
+
       for (let i = 0; i < element.attributes.length; i++) {
         const attr = element.attributes[i];
         newElement.setAttribute(attr.name, attr.value);
@@ -96,31 +96,31 @@ export function createExcerpt(html: string, wordCount = 50): string {
       if (tagName === "a") {
         newElement.setAttribute("target", "_blank");
       }
-      
+
       const isCurrentAnchor = tagName === "a";
 
       // We might be inside a nested anchor tag (why would you do this?)
       const isInsideAnchor = isAnchor || isCurrentAnchor;
-      
+
       // Process children
       const childNodes = Array.from(element.childNodes);
-      
+
       for (const childNode of childNodes) {
         walkNode(childNode, newElement, isInsideAnchor);
         if (excerptComplete && !isInsideAnchor) {
           break;
         }
       }
-      
+
       // Add ellipsis after leaving outside anchor tags if needed
       if (isCurrentAnchor && excerptComplete && !isAnchor) {
         newElement.appendChild(clonedDoc.createTextNode("…"));
       }
-      
+
       parentNode.appendChild(newElement);
     }
   }
-  
+
   const bodyNodes = Array.from(document.body.childNodes);
   for (const node of bodyNodes) {
     if (excerptComplete) {
@@ -147,10 +147,24 @@ export async function hash(str: string): Promise<string> {
   return hash;
 }
 
+const md = markdownit({
+  linkify: true,
+});
+
+// Add target="_blank" to all links
+const defaultRender = md.renderer.rules.link_open ||
+  function (tokens, idx, options, env, self) {
+    return self.renderToken(tokens, idx, options);
+  };
+md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+  // Add a new `target` attribute, or replace the value of the existing one.
+  tokens[idx].attrSet("target", "_blank");
+
+  // Pass the token to the default renderer.
+  return defaultRender(tokens, idx, options, env, self);
+};
+
 export const markdownToHtml = async (markdown: string): Promise<string> => {
-  const md = markdownit({
-    linkify: true,
-  });
   const html = await md.render(markdown);
   return html;
 };

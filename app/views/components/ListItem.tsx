@@ -24,7 +24,11 @@ export const ListItem = ({ list }: { list: List }) => (
         {pluralize(list.list_followers?.length || 0, "follower")}
       </div>
     </div>
-    {list.description && <p class="text-sm text-gray-600">{list.description}
-    </p>}
+    {list.description && (
+      <div
+        class="text-sm text-gray-600 markdown"
+        dangerouslySetInnerHTML={{ __html: list.rendered_description }}
+      />
+    )}
   </div>
 );

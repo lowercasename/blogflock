@@ -25,6 +25,7 @@ export const BioForm = (
         name="bio"
         maxLength={BIO_MAX_LENGTH}
         rows={5}
+        markdown
       >
         {loggedInUser.bio}
       </MaxLengthTextarea>

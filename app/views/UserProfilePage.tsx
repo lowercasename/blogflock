@@ -6,7 +6,7 @@ import { Card } from "./components/Card.tsx";
 import { Stack } from "./components/Stack.tsx";
 import { CogIcon } from "./components/Icons.tsx";
 import { Button, IconButtonLink } from "./components/Button.tsx";
-import { Input, MaxLengthInput } from "./components/Input.tsx";
+import { Input, MaxLengthTextarea } from "./components/Input.tsx";
 import { FlashMessage } from "./components/FlashMessage.tsx";
 import { Flash } from "../lib/flash.ts";
 import { UserBadge } from "./components/UserBadge.tsx";
@@ -32,12 +32,14 @@ export function CreateListForm(
         value={formData?.name}
         required
       />
-      <MaxLengthInput
+      <MaxLengthTextarea
         type="text"
         name="description"
         value={formData?.description}
         placeholder="List description (optional)"
         maxLength={LIST_DESCRIPTION_MAX_LENGTH}
+        rows={5}
+        markdown
       />
       <FlashMessage messages={messages} />
       <Button type="submit">Create list</Button>

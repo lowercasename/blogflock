@@ -46,8 +46,8 @@ export function MaxLengthInput(
 }
 
 export function MaxLengthTextarea(
-  { maxLength, children, ...props }: PropsWithChildren<
-    { maxLength: number; [key: string]: unknown }
+  { maxLength, markdown, children, ...props }: PropsWithChildren<
+    { maxLength: number; markdown?: boolean; [key: string]: unknown }
   >,
 ) {
   const xData = JSON.stringify({ value: children || "", maxLength });
@@ -68,6 +68,11 @@ export function MaxLengthTextarea(
         class="text-xs text-gray-400"
         x-text="`${maxLength - (value || '').length} characters remaining`"
       />
+      {markdown && (
+        <span class="text-xs text-gray-400">
+          , Markdown supported.
+        </span>
+      )}
     </div>
   );
 }

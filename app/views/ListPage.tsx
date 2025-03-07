@@ -103,7 +103,11 @@ export function ListMeta(
         }
       >
         <div class="flex flex-col gap-4">
-          <p x-show="!editing" class="text-gray-600">{list.description}</p>
+          <div
+            x-show="!editing"
+            class="text-gray-600 markdown"
+            dangerouslySetInnerHTML={{ __html: list.rendered_description }}
+          />
           {isOwner && (
             <EditListForm list={list} messages={messages} formData={formData} />
           )}
@@ -188,6 +192,8 @@ export function EditListForm(
         name="description"
         placehodler="List description"
         maxLength={LIST_DESCRIPTION_MAX_LENGTH}
+        rows={5}
+        markdown
       >
         {formData?.description || list.description}
       </MaxLengthTextarea>

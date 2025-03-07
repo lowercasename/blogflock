@@ -5,13 +5,6 @@ import markdownit from "npm:markdown-it";
 
 await ammonia.init();
 
-export type ContentExcerpt = {
-  type: "text" | "image";
-  content: string;
-  alt?: string | null;
-  image?: string | null;
-};
-
 /**
  * Extract an excerpt from HTML content with approximately the specified word count.
  * This function tries to keep anchor tags intact even if they exceed the word count.
@@ -26,7 +19,7 @@ export function createExcerpt(html: string, wordCount = 50): string {
   if (!document) {
     throw new Error("Failed to parse HTML");
   }
-  
+
   const clonedDoc = new DOMParser().parseFromString("<div></div>", "text/html");
   if (!clonedDoc) {
     throw new Error("Failed to create output document");
@@ -88,7 +81,7 @@ export function createExcerpt(html: string, wordCount = 50): string {
       const tagName = element.tagName.toLowerCase();
       
       if (["img", "br", "hr"].includes(tagName)) {
-        parentNode.appendChild(element.cloneNode(true));
+        parentNode.appendChild(element.cloneNode());
         return;
       }
 
@@ -111,30 +104,20 @@ export function createExcerpt(html: string, wordCount = 50): string {
       
       // Process children
       const childNodes = Array.from(element.childNodes);
-      let hasContent = false;
       
       for (const childNode of childNodes) {
-        const beforeWordCount = currentWordCount;
         walkNode(childNode, newElement, isInsideAnchor);
-        
-        // State has changed after processing
-        if (currentWordCount > beforeWordCount) {
-          hasContent = true;
-        }
         if (excerptComplete && !isInsideAnchor) {
           break;
         }
       }
       
-      // Only add elements that have content (images are special)
-      if (hasContent || tagName === "img") {
-        // Add ellipsis after leaving outside anchor tags if needed
-        if (isCurrentAnchor && excerptComplete && !isAnchor) {
-          newElement.appendChild(clonedDoc.createTextNode("…"));
-        }
-        
-        parentNode.appendChild(newElement);
+      // Add ellipsis after leaving outside anchor tags if needed
+      if (isCurrentAnchor && excerptComplete && !isAnchor) {
+        newElement.appendChild(clonedDoc.createTextNode("…"));
       }
+      
+      parentNode.appendChild(newElement);
     }
   }
   

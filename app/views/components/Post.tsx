@@ -7,7 +7,6 @@ import { Link } from "./Link.tsx";
 import { ListNameAndAuthorBadge } from "./ListNameAndAuthorBadge.tsx";
 
 const PostContent = ({ post }: { post: PostType }) => {
-  console.log(post.short_content);
   if (!post.short_content) {
     return (
       <p class="text-gray-500">

@@ -17,6 +17,7 @@ export const BlogSchema = z.object({
   auto_author: z.string().nullable(),
   last_fetched_at: z.coerce.date().nullable(),
   created_at: z.coerce.date(),
+  posts_last_month: z.number().nullable(),
 });
 
 export type BlogObject = z.infer<typeof BlogSchema>;
@@ -211,6 +212,24 @@ export const updateBlogLastFetchedAt = async (id: number): Promise<void> => {
   await query`UPDATE blogs SET last_fetched_at = ${
     new Date().toISOString()
   } WHERE id = ${id}`;
+};
+
+export const updateBlogPostsLastMonth = async (
+  blogId: number,
+): Promise<void> => {
+  await query`UPDATE blogs
+        SET posts_last_month = (
+            SELECT COUNT(*)
+            FROM posts
+            WHERE blog_id = ${blogId}
+            AND published_at >= (CURRENT_TIMESTAMP - INTERVAL '1 month')
+        )
+        WHERE id = ${blogId}`;
+};
+
+export const updateBlogStats = async (blogId: number): Promise<void> => {
+  await updateBlogLastFetchedAt(blogId);
+  await updateBlogPostsLastMonth(blogId);
 };
 
 export const deleteBlog = async (id: number): Promise<void> => {

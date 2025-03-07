@@ -6,6 +6,7 @@ import {
 } from "../lib/auth.ts";
 import {
   getUserByUsername,
+  postingFrequencyLabelToNumber,
   validateForgotPasswordToken,
 } from "../models/User.ts";
 import { flash } from "../lib/flash.ts";
@@ -49,7 +50,13 @@ export const renderListPage = async (c: Context, page: number = 1) => {
   if (!list) {
     return c.redirect("/");
   }
-  const [posts, hasMore] = await getPostsForListsIds([list.id], 10, 0);
+  const [posts, hasMore] = await getPostsForListsIds(
+    [list.id],
+    10,
+    0,
+    loggedInUser &&
+      postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
+  );
 
   if (!list) {
     return c.redirect("/");
@@ -152,6 +159,7 @@ app.get("/", async (c: Context) => {
       loggedInUser.id,
       10,
       0,
+      postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
     );
     return c.html(
       HomeFeedPage({ loggedInUser, posts, hasMore, randomLists }),

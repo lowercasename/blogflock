@@ -6,6 +6,7 @@ import {
 } from "../models/Post.ts";
 import { PostFeed } from "../views/components/PostFeed.tsx";
 import { getListByHashId } from "../models/List.ts";
+import { postingFrequencyLabelToNumber } from "../models/User.ts";
 
 const app = new Hono();
 
@@ -25,6 +26,8 @@ app.get("", async (c: Context) => {
       [list.id],
       perPage,
       offset,
+      loggedInUser &&
+        postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
     );
     return c.html(PostFeed({ posts, hasMore, page, list }));
   }
@@ -37,6 +40,7 @@ app.get("", async (c: Context) => {
     loggedInUser.id,
     perPage,
     offset,
+    postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
   );
   return c.html(PostFeed({ posts, hasMore, page }));
 });

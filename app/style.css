@@ -17,7 +17,7 @@
     @apply mb-2 text-gray-800;
   }
   img {
-    @apply mb-2;
+    @apply mb-2 max-w-full;
   }
   a {
     @apply font-semibold text-gray-900 underline hover:text-gray-800;

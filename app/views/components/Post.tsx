@@ -55,7 +55,9 @@ export const Post = ({ post }: { post: PostType }) => (
           })}
         </time>
         <Badge icon={<ClockIcon />} size="sm">
-          {post.list_blog.blog.posts_last_month} {post.list_blog.blog.posts_last_month === 1 ? "post" : "posts"} last month
+          {post.list_blog.blog.posts_last_month}{" "}
+          {post.list_blog.blog.posts_last_month === 1 ? "post" : "posts"}{" "}
+          last month
         </Badge>
       </header>
       <main class="pb-2 px-4 border-b border-gray-200">

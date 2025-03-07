@@ -1,5 +1,5 @@
 import { Flash } from "../lib/flash.ts";
-import {  User } from "../models/User.ts";
+import { User } from "../models/User.ts";
 import { BIO_MAX_LENGTH } from "../routes/users.ts";
 import { Button } from "./components/Button.tsx";
 import { Card } from "./components/Card.tsx";
@@ -116,14 +116,18 @@ export const PostingFrequencyForm = (
   { loggedInUser, messages }: { loggedInUser?: User; messages?: Flash[] },
 ) => {
   if (!loggedInUser) {
-   // Otherwise Hono complains because it doesn't expect null
+    // Otherwise Hono complains because it doesn't expect null
     // deno-lint-ignore jsx-no-useless-fragment
     return <></>;
   }
 
   const options = [
     { id: "quiet", name: "Quiet", description: "Blogs with 0-4 posts/month" },
-    { id: "occasional", name: "Occasional", description: "Blogs with 0-8 posts/month" },
+    {
+      id: "occasional",
+      name: "Occasional",
+      description: "Blogs with 0-8 posts/month",
+    },
     { id: "frequent", name: "Frequent", description: "See all blogs" },
   ];
 
@@ -162,25 +166,29 @@ export const PostingFrequencyForm = (
         {options.map((option, index) => (
           <label
             key={option.id}
-            class={`cursor-pointer relative border-t border-b ${roundedAndBorderClasses(index, selectedOptions.includes(option))} p-2 text-center hover:bg-orange-50 ${
-              selectedOptions.includes(option) ? "bg-orange-100 border-orange-600 text-black" : "bg-stone-50 border-stone-200 text-gray-500"
+            class={`cursor-pointer relative border-t border-b ${
+              roundedAndBorderClasses(index, selectedOptions.includes(option))
+            } p-2 text-center hover:bg-orange-50 ${
+              selectedOptions.includes(option)
+                ? "bg-orange-100 border-orange-600 text-black"
+                : "bg-stone-50 border-stone-200 text-gray-500"
             }`}
             for={`setting_posting_frequency_${option.id}`}
           >
             <h3 class="font-medium mb-0.5">{option.name}</h3>
             <p class="text-xs">{option.description}</p>
-            <input 
+            <input
               id={`setting_posting_frequency_${option.id}`}
-              type="radio" 
-              name="setting_posting_frequency" 
-              value={option.id} 
-              checked={selectedOptions.includes(option)} 
+              type="radio"
+              name="setting_posting_frequency"
+              value={option.id}
+              checked={selectedOptions.includes(option)}
               class="sr-only"
             />
           </label>
         ))}
       </div>
-      
+
       <FlashMessage messages={messages} />
     </form>
   );
@@ -197,7 +205,8 @@ export const SettingsPage = ({ loggedInUser }: { loggedInUser: User }) => {
           <EmailForm loggedInUser={loggedInUser} />
           <h3 class="font-bold">Posting frequency</h3>
           <p class="text-sm text-gray-500 mb-2">
-            This controls which blogs you see in your home feed. Reduce the frequency to see posts from quieter blogs more often.
+            This controls which blogs you see in your home feed. Reduce the
+            frequency to see posts from quieter blogs more often.
           </p>
           <PostingFrequencyForm loggedInUser={loggedInUser} />
         </Card>

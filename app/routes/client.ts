@@ -50,7 +50,13 @@ export const renderListPage = async (c: Context, page: number = 1) => {
   if (!list) {
     return c.redirect("/");
   }
-  const [posts, hasMore] = await getPostsForListsIds([list.id], 10, 0, loggedInUser && postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency]);
+  const [posts, hasMore] = await getPostsForListsIds(
+    [list.id],
+    10,
+    0,
+    loggedInUser &&
+      postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
+  );
 
   if (!list) {
     return c.redirect("/");

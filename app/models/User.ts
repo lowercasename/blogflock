@@ -52,7 +52,12 @@ export type CreateUser = Pick<
 
 export type UpdateUser = Pick<
   User,
-  "username" | "email" | "avatar_url" | "bio" | "password_hash" | "setting_posting_frequency"
+  | "username"
+  | "email"
+  | "avatar_url"
+  | "bio"
+  | "password_hash"
+  | "setting_posting_frequency"
 >;
 
 export type JWTUser = Pick<User, "id" | "email">;
@@ -268,8 +273,8 @@ export const getUserByUsername = async (
 export const postingFrequencyLabelToNumber = {
   quiet: 4,
   occasional: 8,
-  frequent: null
-}
+  frequent: null,
+};
 
 export const updateUser = async (
   id: number,

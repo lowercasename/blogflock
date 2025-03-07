@@ -240,15 +240,15 @@ export const getPostsForListsIds = async (
 ): Promise<[Post[], boolean]> => {
   const queryText = `${postQuery} 
     WHERE lb.list_id = ANY($1)
-    ${maxPostsPerMonth === null ? '' : 'AND b.posts_last_month <= $4'}
+    ${maxPostsPerMonth === null ? "" : "AND b.posts_last_month <= $4"}
     ORDER BY p.published_at DESC
     LIMIT $2 OFFSET $3`;
-  
+
   const params = maxPostsPerMonth === null
     ? [listIds, limit + 1, offset]
     : [listIds, limit + 1, offset, maxPostsPerMonth];
 
-  const { rows } = await db.queryObject( queryText, params);
+  const { rows } = await db.queryObject(queryText, params);
   const posts = buildPostsResponse(rows);
   if (!posts) {
     return [[], false];
@@ -269,14 +269,14 @@ export const getPostsForFollowedListsByUserId = async (
   const queryText = `${postQuery}
     JOIN list_followers lf ON lb.list_id = lf.list_id
     WHERE lf.user_id = $1
-    ${maxPostsPerMonth === null ? '' : 'AND b.posts_last_month <= $4'}
+    ${maxPostsPerMonth === null ? "" : "AND b.posts_last_month <= $4"}
     ORDER BY p.published_at DESC
     LIMIT $2 OFFSET $3`;
   const params = maxPostsPerMonth === null
     ? [userId, limit + 1, offset]
     : [userId, limit + 1, offset, maxPostsPerMonth];
 
-  const { rows } = await db.queryObject( queryText, params );
+  const { rows } = await db.queryObject(queryText, params);
   const posts = buildPostsResponse(rows);
   if (!posts) {
     return [[], false];

@@ -72,91 +72,91 @@ export function ListMeta(
 ) {
   return (
     <div class="flex flex-col gap-4 order-1 md:order-2" id="list-meta">
-    <Card
-      title={
-        <>
-          <div x-show="!editing">{list.name}</div>
-          <div x-show="editing" style="display: none;">Editing List</div>
-        </>
-      }
-      controls={
-        <div class="flex gap-2">
-          {isOwner
-            ? (
-              <IconButton
-                icon={<PenIcon />}
-                x-on:click="editing = !editing"
-                x-show="!editing"
-              >
-                Edit
-              </IconButton>
-            )
-            : null}
-          <IconButtonLink
-            icon={<RSSIcon />}
-            href={`/list/${list.hash_id}/feed.xml`}
-            target="_blank"
-          >
-            Feed
-          </IconButtonLink>
-        </div>
-      }
-    >
-      <div class="flex flex-col gap-4">
-        <p x-show="!editing" class="text-gray-600">{list.description}</p>
-        {isOwner && (
-          <EditListForm list={list} messages={messages} formData={formData} />
-        )}
-        <div class="flex flex-wrap gap-1 items-center">
-          <span class="font-semibold">Created by</span>{" "}
-          <UserBadge user={list.user} />
-        </div>
-
-        {loggedInUser
-          ? list.list_followers?.some((lf) => lf.id === loggedInUser.id)
-            ? (
-              <Button
-                hx-delete={`/lists/${list.hash_id}/followers`}
-                hx-swap="outerHTML"
-                hx-target="body"
-                icon={<MinusCircleIcon />}
-              >
-                Unfollow
-              </Button>
-            )
-            : (
-              <Button
-                hx-post={`/lists/${list.hash_id}/followers`}
-                hx-swap="outerHTML"
-                hx-target="body"
-                icon={<PlusCircleIcon />}
-              >
-                Follow
-              </Button>
-            )
-          : null}
-
-        {list.list_followers && list.list_followers.length > 0 && (
-          <div>
-            <h2 class="text-lg font-semibold text-orange-800 mb-2">
-              Followers
-            </h2>
-            <div class="flex gap-2 flex-wrap">
-              {list.list_followers.map((lf) => (
-                <UserBadge user={lf} size="sm" />
-              ))}
-            </div>
+      <Card
+        title={
+          <>
+            <div x-show="!editing">{list.name}</div>
+            <div x-show="editing" style="display: none;">Editing List</div>
+          </>
+        }
+        controls={
+          <div class="flex gap-2">
+            {isOwner
+              ? (
+                <IconButton
+                  icon={<PenIcon />}
+                  x-on:click="editing = !editing"
+                  x-show="!editing"
+                >
+                  Edit
+                </IconButton>
+              )
+              : null}
+            <IconButtonLink
+              icon={<RSSIcon />}
+              href={`/list/${list.hash_id}/feed.xml`}
+              target="_blank"
+            >
+              Feed
+            </IconButtonLink>
           </div>
-        )}
-      </div>
-    </Card>
-    <Card title="Filter by posting frequency">
-      <PostingFrequencyForm loggedInUser={loggedInUser || undefined} />
-    </Card>
-    <Card title="Blogs" className="flex flex-col gap-4">
+        }
+      >
+        <div class="flex flex-col gap-4">
+          <p x-show="!editing" class="text-gray-600">{list.description}</p>
+          {isOwner && (
+            <EditListForm list={list} messages={messages} formData={formData} />
+          )}
+          <div class="flex flex-wrap gap-1 items-center">
+            <span class="font-semibold">Created by</span>{" "}
+            <UserBadge user={list.user} />
+          </div>
+
+          {loggedInUser
+            ? list.list_followers?.some((lf) => lf.id === loggedInUser.id)
+              ? (
+                <Button
+                  hx-delete={`/lists/${list.hash_id}/followers`}
+                  hx-swap="outerHTML"
+                  hx-target="body"
+                  icon={<MinusCircleIcon />}
+                >
+                  Unfollow
+                </Button>
+              )
+              : (
+                <Button
+                  hx-post={`/lists/${list.hash_id}/followers`}
+                  hx-swap="outerHTML"
+                  hx-target="body"
+                  icon={<PlusCircleIcon />}
+                >
+                  Follow
+                </Button>
+              )
+            : null}
+
+          {list.list_followers && list.list_followers.length > 0 && (
+            <div>
+              <h2 class="text-lg font-semibold text-orange-800 mb-2">
+                Followers
+              </h2>
+              <div class="flex gap-2 flex-wrap">
+                {list.list_followers.map((lf) => (
+                  <UserBadge user={lf} size="sm" />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+      <Card title="Filter by posting frequency">
+        <PostingFrequencyForm loggedInUser={loggedInUser || undefined} />
+      </Card>
+      <Card title="Blogs" className="flex flex-col gap-4">
         <BlogList list={list} isOwner={isOwner} />
         {isOwner && <AddBlogForm list={list} />}
-    </Card>
+      </Card>
     </div>
   );
 }
@@ -244,7 +244,8 @@ export function BlogList({
               </Link>
               <p class="text-sm text-gray-600 mb-2">{lb.description}</p>
               <Badge icon={<ClockIcon />} size="sm" className="mb-2">
-                {lb.blog.posts_last_month} {lb.blog.posts_last_month === 1 ? "post" : "posts"} last month
+                {lb.blog.posts_last_month}{" "}
+                {lb.blog.posts_last_month === 1 ? "post" : "posts"} last month
               </Badge>
             </div>
             {isOwner && (

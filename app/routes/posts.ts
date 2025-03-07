@@ -26,7 +26,8 @@ app.get("", async (c: Context) => {
       [list.id],
       perPage,
       offset,
-      loggedInUser && postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
+      loggedInUser &&
+        postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
     );
     return c.html(PostFeed({ posts, hasMore, page, list }));
   }

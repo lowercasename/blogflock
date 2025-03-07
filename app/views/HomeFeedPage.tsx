@@ -23,7 +23,12 @@ export const HomeFeedPage = (
         <PostFeed posts={posts} hasMore={hasMore} page={1} />
         <div class="flex flex-col gap-4">
           <Card title="Home Feed">
-            <p>Here you can see posts from all the <Link href={`/user/${loggedInUser.username}`}>lists you follow</Link>.</p>
+            <p>
+              Here you can see posts from all the{" "}
+              <Link href={`/user/${loggedInUser.username}`}>
+                lists you follow
+              </Link>.
+            </p>
           </Card>
           <Card title="Filter by posting frequency">
             <PostingFrequencyForm loggedInUser={loggedInUser} />

@@ -214,7 +214,9 @@ export const updateBlogLastFetchedAt = async (id: number): Promise<void> => {
   } WHERE id = ${id}`;
 };
 
-export const updateBlogPostsLastMonth = async (blogId: number): Promise<void> => {
+export const updateBlogPostsLastMonth = async (
+  blogId: number,
+): Promise<void> => {
   await query`UPDATE blogs
         SET posts_last_month = (
             SELECT COUNT(*)

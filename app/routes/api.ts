@@ -1,8 +1,5 @@
 import { Context, Hono } from "hono";
-import {
-  getBlogs,
-  updateBlogStats,
-} from "../models/Blog.ts";
+import { getBlogs, updateBlogStats } from "../models/Blog.ts";
 import { tokenAuthMiddleware } from "../lib/auth.ts";
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import { validateRequest } from "../lib/validateRequest.ts";

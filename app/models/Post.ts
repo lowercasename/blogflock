@@ -1,7 +1,7 @@
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import { db, queryOne } from "../lib/db.ts";
 import joinjs from "npm:join-js";
-import { excerpt, hash } from "../lib/text.ts";
+import { createExcerpt, hash } from "../lib/text.ts";
 import { ListBlogWithRelationsSchema } from "./ListBlog.ts";
 
 export const PostSchema = z.object({
@@ -17,7 +17,7 @@ export const PostSchema = z.object({
 }).transform((post) => ({
   ...post,
   title: post.title || `Post on ${post.list_blog.title}`,
-  short_content: excerpt(post.content, 50),
+  short_content: createExcerpt(post.content, 50),
 }));
 
 export type PostObject = z.infer<typeof PostSchema>;

@@ -11,3 +11,45 @@
     @apply font-semibold text-orange-500 hover:text-orange-600;
   }
 }
+
+.post-content {
+  p {
+    @apply mb-2 text-gray-800;
+  }
+  img {
+    @apply mb-2;
+  }
+  a {
+    @apply font-semibold text-gray-900 underline hover:text-gray-800;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold text-gray-900;
+  }
+  code {
+    @apply text-xs bg-stone-100 rounded p-1;
+  }
+  pre {
+    @apply bg-stone-100 rounded p-2 overflow-x-auto mb-2;
+  }
+  pre code {
+    @apply leading-5;
+  }
+  blockquote {
+    @apply border-l-2 border-gray-200 pl-2;
+  }
+  ul {
+    @apply list-disc ml-6 mb-2;
+  }
+  ol {
+    @apply list-decimal ml-6 mb-2;
+  }
+  b, strong {
+    @apply font-semibold;
+  }
+  i, em {
+    @apply italic;
+  }
+  hr {
+    @apply border-t-2 border-gray-200 my-4;
+  }
+}

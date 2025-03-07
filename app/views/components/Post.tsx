@@ -1,29 +1,47 @@
+import { pluralize } from "../../lib/text.ts";
 import { Post as PostType } from "../../models/Post.ts";
 import { Badge } from "./Badge.tsx";
 import { Card } from "./Card.tsx";
-import { ClockIcon, ScrollIcon, UserIcon } from "./Icons.tsx";
+import { ClockIcon } from "./Icons.tsx";
+import { Link } from "./Link.tsx";
+import { ListNameAndAuthorBadge } from "./ListNameAndAuthorBadge.tsx";
 
 const PostContent = ({ post }: { post: PostType }) => {
-  if (post.short_content.type === "text") {
+  console.log(post.short_content);
+  if (!post.short_content) {
     return (
-      <p class="text-gray-900 [word-break:break-word]">
-        {post.short_content.content}
+      <p class="text-gray-500">
+        No post content available.{" "}
+        <Link href={post.url} target="_blank">View original post</Link>.
       </p>
     );
-  } else {
-    return (
-      <>
-        <img
-          src={post.short_content.image || ""}
-          alt={post.short_content.alt || post.title}
-          class="w-full mb-2"
-        />
-        <p class="text-gray-900 [word-break:break-word]">
-          {post.short_content.content}
-        </p>
-      </>
-    );
   }
+  return (
+    <div
+      class="post-content"
+      dangerouslySetInnerHTML={{ __html: post.short_content }}
+    />
+  );
+  // if (post.short_content.type === "text") {
+  //   return (
+  //     <p class="text-gray-900 [word-break:break-word]">
+  //       {post.short_content.content}
+  //     </p>
+  //   );
+  // } else {
+  //   return (
+  //     <>
+  //       <img
+  //         src={post.short_content.image || ""}
+  //         alt={post.short_content.alt || post.title}
+  //         class="w-full mb-2"
+  //       />
+  //       <p class="text-gray-900 [word-break:break-word]">
+  //         {post.short_content.content}
+  //       </p>
+  //     </>
+  //   );
+  // }
 };
 
 export const Post = ({ post }: { post: PostType }) => (
@@ -56,7 +74,7 @@ export const Post = ({ post }: { post: PostType }) => (
         </time>
         <Badge icon={<ClockIcon />} size="sm">
           {post.list_blog.blog.posts_last_month}{" "}
-          {post.list_blog.blog.posts_last_month === 1 ? "post" : "posts"}{" "}
+          {pluralize(post.list_blog.blog.posts_last_month ?? 0, "post")}{" "}
           last month
         </Badge>
       </header>
@@ -64,26 +82,7 @@ export const Post = ({ post }: { post: PostType }) => (
         <PostContent post={post} />
       </main>
       <footer class="px-4 pt-1 mb-4">
-        <div class="inline-flex items-center rounded-full border border-orange-200 text-sm overflow-hidden">
-          <a
-            class="px-2 border-r border-orange-200 hover:bg-orange-50 text-gray-600"
-            href={`/list/${post.list_blog.list.hash_id}`}
-          >
-            <div class="inline-flex size-4 mr-1 relative top-0.5">
-              <ScrollIcon />
-            </div>
-            {post.list_blog.list.name}
-          </a>
-          <a
-            class="px-2 hover:bg-orange-50 text-gray-600"
-            href={`/user/${post.list_blog.list.user.username}`}
-          >
-            <div class="inline-flex size-4 mr-1 relative top-0.5">
-              <UserIcon />
-            </div>
-            {post.list_blog.list.user.username}
-          </a>
-        </div>
+        <ListNameAndAuthorBadge list={post.list_blog.list} />
       </footer>
     </article>
   </Card>

@@ -21,33 +21,21 @@ const PostContent = ({ post }: { post: PostType }) => {
       dangerouslySetInnerHTML={{ __html: post.short_content }}
     />
   );
-  // if (post.short_content.type === "text") {
-  //   return (
-  //     <p class="text-gray-900 [word-break:break-word]">
-  //       {post.short_content.content}
-  //     </p>
-  //   );
-  // } else {
-  //   return (
-  //     <>
-  //       <img
-  //         src={post.short_content.image || ""}
-  //         alt={post.short_content.alt || post.title}
-  //         class="w-full mb-2"
-  //       />
-  //       <p class="text-gray-900 [word-break:break-word]">
-  //         {post.short_content.content}
-  //       </p>
-  //     </>
-  //   );
-  // }
 };
 
 export const Post = ({ post }: { post: PostType }) => (
   <Card
     padding={false}
   >
-    <article class="flex flex-col gap-2">
+    <article
+      class="flex flex-col gap-2"
+      // These are necessary because the Post's parent element (PostFeed) has
+      // an hx-swap attribute of its own which targets #posts. Because we have
+      // hx-boost enabled on the body, and hx-swap is inherited, we need to
+      // override the hx-swap target to be the body element, always.
+      hx-swap="outerHTML"
+      hx-target="body"
+    >
       <header class="pb-2 px-4 mb-1 mt-3 border-b border-gray-200">
         <h2 class="text-xl font-semibold text-orange-900 mb-2">
           <a href={post.url} class="hover:underline" target="_blank">

@@ -5,6 +5,7 @@ import { validateRequest } from "../lib/validateRequest.ts";
 import { jwtAuthMiddleware } from "../lib/auth.ts";
 import {
   createList,
+  deleteList,
   getAllListsByFilter,
   getListByHashId,
   updateList,
@@ -474,5 +475,24 @@ app.get(
     };
   }),
 );
+
+app.delete("/:hashId", jwtAuthMiddleware, async (c: Context) => {
+  const list = await getListByHashId(c.req.param("hashId"));
+  if (!list) {
+    c.header("HX-Redirect", "/");
+    return c.text("", 200);
+  }
+
+  if (list.user_id !== c.get("user").id) {
+    c.header("HX-Redirect", "/");
+    return c.text("", 200);
+  }
+
+  // Delete the list
+  await deleteList(list.id);
+
+  c.header("HX-Redirect", "/");
+  return c.text("", 200);
+});
 
 export default app;

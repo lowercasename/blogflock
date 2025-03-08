@@ -38,20 +38,21 @@ export function AddBlogForm({
       hx-post={`/lists/${list.hash_id}/blogs`}
       hx-swap="outerHTML"
       hx-target="this"
-      x-data="{ loading: false }"
+      x-data="{ loading: false, feedUrl: '' }"
     >
       <Input
         type="text"
         name="feedUrl"
         placeholder="Blog or RSS feed URL"
         value={formData?.feedUrl}
+        x-model="feedUrl"
         x-bind:disabled="loading"
         required
       />
       <FlashMessage messages={messages} />
       <Button
         type="submit"
-        x-bind:disabled="loading"
+        x-bind:disabled="loading || !feedUrl"
         x-text="loading ? 'Adding...' : 'Add Blog'"
         x-on:click="$nextTick(() => loading = true)"
       >
@@ -163,6 +164,20 @@ export function ListMeta(
         <BlogList list={list} isOwner={isOwner} />
         {isOwner && <AddBlogForm list={list} />}
       </Card>
+      {isOwner && (
+        <Card title="List Settings">
+          <form
+            hx-delete={`/lists/${list.hash_id}`}
+            hx-swap="outerHTML"
+            hx-target="body"
+            hx-confirm="Are you sure you want to delete this list? This action cannot be undone."
+          >
+            <Button type="submit" icon={<BinIcon />}>
+              Delete List
+            </Button>
+          </form>
+        </Card>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { PropsWithChildren } from "hono/jsx";
 
 interface Props {
   href?: string;
+  className?: string;
   [key: string]: unknown;
 }
 

@@ -23,6 +23,7 @@ import { addWsClient, removeWsClient } from "../lib/websockets.ts";
 import { WSContext } from "hono/ws";
 import { CreateListForm } from "../views/UserProfilePage.tsx";
 import { ListFeed } from "../views/components/ListFeed.tsx";
+import { SortValue } from "../views/ListSearchPage.tsx";
 
 const app = new Hono();
 
@@ -58,7 +59,8 @@ const updateBlogInListSchema = z.object({
 
 // GET /lists/search - Show all lists with pagination and search
 app.get("/search", jwtAuthMiddleware, async (c: Context) => {
-  const search = c.req.query("search");
+  const search = (c.req.query("search") || "").trim().toLowerCase();
+  const sort: SortValue = c.req.query("sort") as SortValue | undefined || "last_updated" as SortValue;
   const page = Number(c.req.query("page")) || 1;
   const perPage = 10;
   const offset = (page - 1) * perPage;
@@ -66,8 +68,9 @@ app.get("/search", jwtAuthMiddleware, async (c: Context) => {
     search || "",
     perPage,
     offset,
+    sort,
   );
-  return c.html(ListFeed({ lists, hasMore, page, search }));
+  return c.html(ListFeed({ lists, hasMore, page, search, sort }));
 });
 
 // POST /lists - Create a new list

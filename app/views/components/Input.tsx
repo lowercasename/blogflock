@@ -1,4 +1,5 @@
 import { PropsWithChildren } from "hono/jsx";
+import { JSX } from "https://jsr.io/@hono/hono/4.6.10/src/jsx/base.ts";
 
 export function Input({ ...props }: { [key: string]: unknown }) {
   return (
@@ -6,6 +7,30 @@ export function Input({ ...props }: { [key: string]: unknown }) {
       class="border border-gray-300 rounded-lg p-2 w-full text-sm"
       {...props}
     />
+  );
+}
+
+export function Select(
+  { options, icon, value, ...props }: {
+    options: { value: string; text: string }[];
+    icon: JSX.Element;
+    value: string;
+    [key: string]: unknown;
+  },
+) {
+  return (
+    <div class="border border-gray-300 bg-white rounded-lg p-2 w-full text-sm flex gap-2">
+      <div class="size-6">
+        {icon}
+      </div>
+      <select class=" bg-white w-full" {...props}>
+        {options.map((option) => (
+          <option value={option.value} selected={option.value === value}>
+            {option.text}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 

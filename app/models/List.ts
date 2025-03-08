@@ -74,6 +74,7 @@ const listQuery = `
         b.auto_image_url as blog_auto_image_url,
         b.posts_last_month as blog_posts_last_month,
         b.last_fetched_at as blog_last_fetched_at,
+        b.last_published_at as blog_last_published_at,
         b.created_at as blog_created_at
     FROM lists l
     LEFT JOIN users u ON l.user_id = u.id
@@ -143,6 +144,7 @@ const buildListsResponse = async (rows: unknown[]): Promise<List[] | null> => {
         "auto_author",
         "posts_last_month",
         "last_fetched_at",
+        "last_published_at",
         "created_at",
         "hash_id",
       ],
@@ -210,10 +212,10 @@ export const getAllListsByFilter = async (
 ): Promise<[List[], boolean]> => {
   const { rows } = await db.queryObject(
     listQuery +
-      "WHERE l.name ILIKE $1 OR l.description ILIKE $2 ORDER BY blog_last_fetched_at DESC",
+      "WHERE l.name ILIKE $1 OR l.description ILIKE $2",
     [`%${filter}%`, `%${filter}%`],
   );
-  const lists = await buildListsResponse(rows);
+  let lists = await buildListsResponse(rows);
   if (!lists) {
     return [[], false];
   }
@@ -231,6 +233,25 @@ export const getAllListsByFilter = async (
       const bBlogs = b.list_blogs?.length || 0;
       return bBlogs - aBlogs;
     });
+  } else if (sort === "last_updated") {
+    // Subsequently sort by the last published blog
+    const listsWithDates = lists.map(list => {
+      const lastPublishedAt = list.list_blogs?.reduce((acc, lb) => {
+        if (!lb.blog.last_published_at) {
+          return acc;
+        }
+        return lb.blog.last_published_at > acc
+          ? lb.blog.last_published_at
+          : acc;
+      }, new Date(0)) || new Date(0);
+      
+      return {
+        ...list,
+        lastPublishedAt: lastPublishedAt.getTime()
+      };
+    });
+    listsWithDates.sort((a, b) => b.lastPublishedAt - a.lastPublishedAt);
+    lists = listsWithDates;
   }
   const pagedLists = lists.slice(offset, offset + limit);
   return [pagedLists, lists.length > offset + limit];

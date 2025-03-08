@@ -175,7 +175,7 @@ app.get("/settings", jwtAuthMiddleware, (c: Context) => {
 
 app.get("/lists", jwtAuthMiddleware, async (c: Context) => {
   const loggedInUser = c.get("user");
-  const [lists, hasMore] = await getAllListsByFilter("", 10, 0);
+  const [lists, hasMore] = await getAllListsByFilter("", 10, 0, "last_updated");
   return c.html(ListSearchPage({ loggedInUser, lists, hasMore }));
 });
 

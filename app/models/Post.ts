@@ -142,6 +142,7 @@ const postQuery = `
         b.auto_image_url as blog_auto_image_url,
         b.posts_last_month as blog_posts_last_month,
         b.last_fetched_at as blog_last_fetched_at,
+        b.last_published_at as blog_last_published_at,
         b.created_at as blog_created_at
     FROM posts p
     LEFT JOIN blogs b ON p.blog_id = b.id
@@ -203,6 +204,7 @@ const buildPostsResponse = async (rows: unknown[]): Promise<Post[] | null> => {
         "auto_image_url",
         "posts_last_month",
         "last_fetched_at",
+        "last_published_at",
         "created_at",
       ],
     },

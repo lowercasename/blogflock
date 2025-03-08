@@ -22,6 +22,7 @@ import { UserBadge } from "./components/UserBadge.tsx";
 import { Badge } from "./components/Badge.tsx";
 import { LIST_DESCRIPTION_MAX_LENGTH } from "../routes/lists.ts";
 import { PostingFrequencyForm } from "./SettingsPage.tsx";
+import { ListBlog } from "../models/ListBlog.ts";
 
 export function AddBlogForm({
   list,
@@ -161,7 +162,7 @@ export function ListMeta(
         </Card>
       )}
       <Card title="Blogs" className="flex flex-col gap-4">
-        <BlogList list={list} isOwner={isOwner} />
+        <BlogList list={list} isOwner={isOwner} showInitial={5} />
         {isOwner && <AddBlogForm list={list} />}
       </Card>
       {isOwner && (
@@ -224,75 +225,80 @@ export function BlogList({
   list,
   flash,
   isOwner,
+  showInitial,
 }: {
   list: List;
   flash?: Flash[];
   isOwner: boolean;
+  showInitial?: number;
 }) {
+  const singleBlog = (lb: ListBlog) => (
+    <div x-data="{ editing: false }">
+      {isOwner && (
+        <form
+          class="flex flex-col gap-4 p-4 bg-stone-100 border border-stone-300 rounded"
+          style="display:none;"
+          x-show="editing"
+          hx-patch={`/lists/${list.hash_id}/blogs/${lb.blog.hash_id}`}
+          hx-swap="outerHTML"
+          hx-target="#blogs-list"
+        >
+          <Input
+            type="text"
+            name="title"
+            value={lb.title || ""}
+            placeholder="Blog title"
+            required
+          />
+          <MaxLengthTextarea
+            name="description"
+            placeholder="Blog description"
+            maxLength={LIST_DESCRIPTION_MAX_LENGTH}
+          >
+            {lb.description}
+          </MaxLengthTextarea>
+          <Button type="submit">Save</Button>
+        </form>
+      )}
+      <div x-show="!editing">
+        <Link href={lb.blog.site_url!} target="_blank">
+          {lb.title || new URL(lb.blog.site_url!).hostname}
+        </Link>
+        <p class="text-sm text-gray-600 mb-2">{lb.description}</p>
+        <Badge icon={<ClockIcon />} size="sm" className="mb-2">
+          {lb.blog.posts_last_month}{" "}
+          {lb.blog.posts_last_month === 1 ? "post" : "posts"} last month
+        </Badge>
+      </div>
+      {isOwner && (
+        <div class="flex gap-2">
+          <IconButton
+            icon={<PenIcon />}
+            x-on:click="editing = !editing"
+            x-show="!editing"
+          >
+            Edit
+          </IconButton>
+          <IconButton
+            icon={<BinIcon />}
+            hx-delete={`/lists/${list.hash_id}/blogs/${lb.blog.hash_id}`}
+            hx-swap="outerHTML"
+            hx-target="body"
+            hx-confirm="Are you sure you want to remove this blog from the list?"
+          >
+            Remove
+          </IconButton>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div id="blogs-list">
       {isOwner && <FlashMessage messages={flash} />}
       <Stack
-        items={list.list_blogs?.map((lb) => (
-          <div x-data="{ editing: false }">
-            {isOwner && (
-              <form
-                class="flex flex-col gap-4 p-4 bg-stone-100 border border-stone-300 rounded"
-                style="display:none;"
-                x-show="editing"
-                hx-patch={`/lists/${list.hash_id}/blogs/${lb.blog.hash_id}`}
-                hx-swap="outerHTML"
-                hx-target="#blogs-list"
-              >
-                <Input
-                  type="text"
-                  name="title"
-                  value={lb.title || ""}
-                  placeholder="Blog title"
-                  required
-                />
-                <MaxLengthTextarea
-                  name="description"
-                  placeholder="Blog description"
-                  maxLength={LIST_DESCRIPTION_MAX_LENGTH}
-                >
-                  {lb.description}
-                </MaxLengthTextarea>
-                <Button type="submit">Save</Button>
-              </form>
-            )}
-            <div x-show="!editing">
-              <Link href={lb.blog.site_url!} target="_blank">
-                {lb.title || new URL(lb.blog.site_url!).hostname}
-              </Link>
-              <p class="text-sm text-gray-600 mb-2">{lb.description}</p>
-              <Badge icon={<ClockIcon />} size="sm" className="mb-2">
-                {lb.blog.posts_last_month}{" "}
-                {lb.blog.posts_last_month === 1 ? "post" : "posts"} last month
-              </Badge>
-            </div>
-            {isOwner && (
-              <div class="flex gap-2">
-                <IconButton
-                  icon={<PenIcon />}
-                  x-on:click="editing = !editing"
-                  x-show="!editing"
-                >
-                  Edit
-                </IconButton>
-                <IconButton
-                  icon={<BinIcon />}
-                  hx-delete={`/lists/${list.hash_id}/blogs/${lb.blog.hash_id}`}
-                  hx-swap="outerHTML"
-                  hx-target="body"
-                  hx-confirm="Are you sure you want to remove this blog from the list?"
-                >
-                  Remove
-                </IconButton>
-              </div>
-            )}
-          </div>
-        )) || []}
+        showInitial={showInitial}
+        items={list.list_blogs?.map((lb) => singleBlog(lb)) || []}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
-import { query, queryOne } from "../lib/db.ts";
+import { db, query, queryOne } from "../lib/db.ts";
 import { parseFeed } from "https://deno.land/x/rss@1.1.1/mod.ts";
 import feedFinder from "npm:feed-finder";
 import { encode } from "../lib/hashids.ts";
@@ -208,13 +208,13 @@ export const updateBlog = async (
   return getBlogById(id);
 };
 
-export const updateBlogLastFetchedAt = async (id: number): Promise<void> => {
+const updateBlogLastFetchedAt = async (id: number): Promise<void> => {
   await query`UPDATE blogs SET last_fetched_at = ${
     new Date().toISOString()
   } WHERE id = ${id}`;
 };
 
-export const updateBlogPostsLastMonth = async (
+const updateBlogPostsLastMonth = async (
   blogId: number,
 ): Promise<void> => {
   await query`UPDATE blogs

@@ -154,9 +154,11 @@ export function ListMeta(
           )}
         </div>
       </Card>
-      <Card title="Filter by posting frequency">
-        <PostingFrequencyForm loggedInUser={loggedInUser || undefined} />
-      </Card>
+      {loggedInUser && (
+        <Card title="Filter by posting frequency">
+          <PostingFrequencyForm loggedInUser={loggedInUser || undefined} />
+        </Card>
+      )}
       <Card title="Blogs" className="flex flex-col gap-4">
         <BlogList list={list} isOwner={isOwner} />
         {isOwner && <AddBlogForm list={list} />}

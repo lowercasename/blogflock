@@ -217,22 +217,22 @@ export const getAllListsByFilter = async (
   if (!lists) {
     return [[], false];
   }
-  const pagedLists = lists.slice(offset, offset + limit);
   if (sort === "most_followed") {
     // Subsequently sort by the number of followers
-    pagedLists.sort((a, b) => {
+    lists.sort((a, b) => {
       const aFollowers = a.list_followers?.length || 0;
       const bFollowers = b.list_followers?.length || 0;
       return bFollowers - aFollowers;
     });
   } else if (sort === "most_blogs") {
     // Subsequently sort by the number of blogs
-    pagedLists.sort((a, b) => {
+    lists.sort((a, b) => {
       const aBlogs = a.list_blogs?.length || 0;
       const bBlogs = b.list_blogs?.length || 0;
       return bBlogs - aBlogs;
     });
   }
+  const pagedLists = lists.slice(offset, offset + limit);
   return [pagedLists, lists.length > offset + limit];
 };
 

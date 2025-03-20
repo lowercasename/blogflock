@@ -13,13 +13,13 @@ groups:
 
       - alert: FeedSenderNoUpdates
         expr: |
-          time() - feed_sender_last_successful_run_timestamp_seconds > 900  # 15 minutes
+          time() - feed_sender_last_successful_run_timestamp_seconds > 1800 # 30 minutes
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "Feed Sender not updating"
-          description: "Feed Sender hasn't successfully run in the last 15 minutes"
+          description: "Feed Sender hasn't successfully run in the last 30 minutes"
 
       - alert: FeedWorkerUnhealthy
         expr: feed_worker_healthy == 0

@@ -3,3 +3,4 @@ database.sqlite3
 .DS_Store
 alertmanager.yml
 launch.json
+__debug*

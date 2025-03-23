@@ -52,7 +52,6 @@ services:
     restart: unless-stopped
 
   feed-worker:
-    container_name: blogflock-feed-worker
     build:
       context: ./feed-scraper
       dockerfile: Dockerfile.worker
@@ -73,7 +72,9 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "8090:8090"
+      - "8090-8093:8090"
+    deploy:
+      replicas: 4
 
   feed-sender:
     container_name: blogflock-feed-sender

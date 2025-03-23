@@ -48,11 +48,6 @@ type AppMetrics struct {
 
 var metrics AppMetrics
 
-func init() {
-	metrics.LastSuccessfulRun.Store(time.Time{})
-	metrics.IsHealthy.Store(true)
-}
-
 func failOnError(err error, msg string) {
 	if err != nil {
 		metrics.ErrorCount.Add(1)
@@ -185,6 +180,12 @@ func main() {
 	rabbitmqUser := os.Getenv("RABBITMQ_USER")
 	rabbitmqPassword := os.Getenv("RABBITMQ_PASSWORD")
 	rabbitmqHost := os.Getenv("RABBITMQ_HOST")
+
+	metrics.LastSuccessfulRun.Store(time.Time{})
+	metrics.LastConnectionTime.Store(time.Time{})
+	metrics.RabbitMQConnected.Store(false)
+	metrics.IsHealthy.Store(false)
+	metrics.ErrorCount.Store(0)
 
 	go func() {
 		http.HandleFunc("/health", healthHandler)

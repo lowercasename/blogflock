@@ -21,12 +21,11 @@ scrape_configs:
   - job_name: 'feed-worker'
     metrics_path: /health
     scrape_interval: 10s
-    static_configs:
-      - targets:
-        - 'feed-worker:8090'
-        - 'feed-worker:8091'
-        - 'feed-worker:8092'
-        - 'feed-worker:8093'
+    dns_sd_configs:
+      - names:
+          - feed-worker
+        type: A
+        port: 8090
 
   - job_name: 'rabbitmq'
     static_configs:

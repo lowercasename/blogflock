@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
+	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,6 +14,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"github.com/mmcdole/gofeed"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -43,10 +47,12 @@ type AppMetrics struct {
 	ErrorCount          atomic.Int64
 	IsHealthy           atomic.Bool
 	RabbitMQConnected   atomic.Bool
+	DbConnected         atomic.Bool
 	LastConnectionTime  atomic.Value
 }
 
 var metrics AppMetrics
+var db *sql.DB
 
 func failOnError(err error, msg string) {
 	if err != nil {
@@ -94,6 +100,14 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "feed_worker_rabbitmq_connected 1\n")
 		} else {
 			fmt.Fprintf(w, "feed_worker_rabbitmq_connected 0\n")
+		}
+
+		fmt.Fprintf(w, "# HELP feed_worker_db_connected Whether the database is connected\n")
+		fmt.Fprintf(w, "# TYPE feed_worker_db_connected gauge\n")
+		if metrics.DbConnected.Load() {
+			fmt.Fprintf(w, "feed_worker_db_connected 1\n")
+		} else {
+			fmt.Fprintf(w, "feed_worker_db_connected 0\n")
 		}
 
 		fmt.Fprintf(w, "# EOF\n")
@@ -173,6 +187,135 @@ func setupConsumer(ch *amqp.Channel, queueName string) (<-chan amqp.Delivery, er
 	)
 }
 
+func hashString(input string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(input))
+	hashBytes := hasher.Sum(nil)
+	return hex.EncodeToString(hashBytes)
+}
+
+func connectToDatabase(connStr string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func generatePostGUID(post Post) (string, error) {
+	if post.GUID != "" {
+		return post.GUID, nil
+	}
+
+	if post.URL != "" {
+		return post.URL, nil
+	}
+
+	publishedAt, err := time.Parse(time.RFC3339, post.PublishedAt)
+	if err != nil {
+		return "", fmt.Errorf("error parsing published date: %w", err)
+	}
+
+	input := post.Title + fmt.Sprintf("%d", publishedAt.UnixMilli())
+	return hashString(input), nil
+}
+
+func getPostByGuid(guid string, blogId int) (bool, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM posts WHERE guid = $1 AND blog_id = $2", guid, blogId).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func createPost(post Post) (int, error) {
+	var id int
+	publishedAt, err := time.Parse(time.RFC3339, post.PublishedAt)
+	if err != nil {
+		return 0, fmt.Errorf("invalid published_at date: %v", err)
+	}
+
+	// Insert the post
+	err = db.QueryRow(`
+		INSERT INTO posts (
+			blog_id,
+			title,
+			content,
+			url,
+			published_at,
+			guid,
+			created_at
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id
+	`, post.BlogID, post.Title, post.Content, post.URL, publishedAt, post.GUID, time.Now()).Scan(&id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func updateBlogLastFetchedAt(blogId int) error {
+	_, err := db.Exec("UPDATE blogs SET last_fetched_at = $1 WHERE id = $2",
+		time.Now().Format(time.RFC3339), blogId)
+	return err
+}
+
+func updateBlogPostsLastMonth(blogId int) error {
+	_, err := db.Exec(`
+		UPDATE blogs
+		SET posts_last_month = (
+			SELECT COUNT(*)
+			FROM posts
+			WHERE blog_id = $1
+			AND published_at >= (CURRENT_TIMESTAMP - INTERVAL '1 month')
+		)
+		WHERE id = $1
+	`, blogId)
+	return err
+}
+
+func updateBlogLastPublishedAt(blogId int) error {
+	_, err := db.Exec(`
+		UPDATE blogs
+		SET last_published_at = (
+			SELECT MAX(published_at)
+			FROM posts
+			WHERE blog_id = $1
+		)
+		WHERE id = $1
+	`, blogId)
+	return err
+}
+
+func updateBlogStats(blogId int) error {
+	err := updateBlogLastFetchedAt(blogId)
+	if err != nil {
+		return err
+	}
+
+	err = updateBlogPostsLastMonth(blogId)
+	if err != nil {
+		return err
+	}
+
+	err = updateBlogLastPublishedAt(blogId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	err := godotenv.Load()
 	failOnError(err, "Failed to load .env file")
@@ -184,8 +327,21 @@ func main() {
 	metrics.LastSuccessfulRun.Store(time.Time{})
 	metrics.LastConnectionTime.Store(time.Time{})
 	metrics.RabbitMQConnected.Store(false)
+	metrics.DbConnected.Store(false)
 	metrics.IsHealthy.Store(false)
 	metrics.ErrorCount.Store(0)
+
+	dbUrl := os.Getenv("DATABASE_URL")
+	var dbErr error
+	db, dbErr = connectToDatabase(dbUrl)
+	if dbErr != nil {
+		log.Printf("Failed to connect to database: %v", dbErr)
+		metrics.DbConnected.Store(false)
+		metrics.IsHealthy.Store(false)
+	} else {
+		metrics.DbConnected.Store(true)
+		log.Printf("Connected to database")
+	}
 
 	go func() {
 		http.HandleFunc("/health", healthHandler)
@@ -294,6 +450,8 @@ func main() {
 							feedItemsPublishedAfterLastFetchedAt = append(feedItemsPublishedAfterLastFetchedAt, item)
 						}
 					}
+
+					savedPostsCount := 0
 					for _, item := range feedItemsPublishedAfterLastFetchedAt {
 						contentOrDescription := item.Content
 						if contentOrDescription == "" {
@@ -307,9 +465,38 @@ func main() {
 							GUID:        item.GUID,
 							BlogID:      feedData.ID,
 						}
+
+						postGuid, err := generatePostGUID(post)
+						if err != nil {
+							log.Printf("Failed to generate post GUID: %v", err)
+							metrics.ErrorCount.Add(1)
+							continue
+						}
+
+						exists, err := getPostByGuid(postGuid, post.BlogID)
+						if err != nil {
+							log.Printf("Error checking if post exists: %v", err)
+							metrics.ErrorCount.Add(1)
+							continue
+						}
+
+						if exists {
+							log.Printf("Post with GUID %s already exists for blog %d", post.GUID, post.BlogID)
+							continue
+						}
+
+						postID, err := createPost(post)
+						if err != nil {
+							log.Printf("Failed to create post: %v", err)
+							metrics.ErrorCount.Add(1)
+							continue
+						}
+
+						log.Printf("Created post with ID %d: %s", postID, post.Title)
+
+						// Send the post data to the post_queue for WebSockets updates
 						postJson, err := json.Marshal(post)
 						failOnError(err, "Failed to marshal post data")
-						// Send the post data to the post_queue
 						err = ch.Publish(
 							"",             // exchange
 							postQueue.Name, // routing key
@@ -322,6 +509,13 @@ func main() {
 							})
 						failOnError(err, "Failed to publish a message")
 						log.Printf(" [x] Sent %s", item.Title)
+						savedPostsCount++
+					}
+
+					err = updateBlogStats(feedData.ID)
+					if err != nil {
+						log.Printf("Failed to update blog stats: %v", err)
+						metrics.ErrorCount.Add(1)
 					}
 
 					metrics.ProcessedFeedsCount.Add(1)
@@ -329,7 +523,11 @@ func main() {
 					metrics.LastSuccessfulRun.Store(time.Now())
 					metrics.IsHealthy.Store(true)
 
-					log.Printf("Done")
+					log.Printf("Processed feed %s: %d new posts found, %d posts saved",
+						feed.Title,
+						len(feedItemsPublishedAfterLastFetchedAt),
+						savedPostsCount)
+
 					d.Ack(false)
 				}()
 			}
@@ -342,7 +540,7 @@ func main() {
 		metrics.IsHealthy.Store(false)
 		ch.Close()
 		conn.Close()
-		time.Sleep(5 * time.Second) // Wait before reconnecting
+		time.Sleep(5 * time.Second)
 		continue
 	}
 }

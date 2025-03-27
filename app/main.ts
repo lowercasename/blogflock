@@ -5,8 +5,6 @@ import lists from "./routes/lists.ts";
 import { initDB } from "./lib/db.ts";
 import api from "./routes/api.ts";
 import { connect } from "https://deno.land/x/amqp/mod.ts";
-import { createPost, generatePostGuid, getPostByGuid } from "./models/Post.ts";
-import { updateBlogStats } from "./models/Blog.ts";
 import { User } from "./models/User.ts";
 import posts from "./routes/posts.ts";
 import { Flash } from "./lib/flash.ts";
@@ -60,27 +58,9 @@ try {
         return;
       }
       const body = response.data;
-      // Save the post to the database
-      const probablyGuid = await generatePostGuid({
-        guid: body.guid,
-        url: body.url,
-        title: body.title,
-        published_at: body.published_at,
-      });
-      const existingPost = await getPostByGuid(probablyGuid, body.blog_id);
-      if (existingPost) {
-        await updateBlogStats(body.blog_id);
-        console.log(
-          `[AMQP:post_queue] Post already exists: ${body.guid}`,
-        );
-        await channel.ack({ deliveryTag: args.deliveryTag });
-        return;
-      }
-      await createPost(body);
-      await updateBlogStats(body.blog_id);
       const lists = await getAllListsContainingBlog(body.blog_id);
       broadcastNewPost(lists);
-      console.log("[AMQP:post_queue] Post created");
+      console.log(`[AMQP:post_queue] Post broadcast: ${body.title}`);
       await channel.ack({ deliveryTag: args.deliveryTag });
     },
   );

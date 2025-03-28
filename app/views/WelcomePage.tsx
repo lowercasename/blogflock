@@ -1,4 +1,5 @@
 import { List } from "../models/List.ts";
+import { ButtonLink } from "./components/Button.tsx";
 import { Card } from "./components/Card.tsx";
 import { Link } from "./components/Link.tsx";
 import { ListItem } from "./components/ListItem.tsx";
@@ -39,6 +40,9 @@ export function WelcomePage({ randomLists }: { randomLists: List[] }) {
             helping BlogFlock to grow.
           </p>
           <PricingGrid />
+          <ButtonLink href="/register">
+            Sign up for BlogFlock
+          </ButtonLink>
           <p class="text-lg text-gray-600">
             Because BlogFlock is open source, you are always welcome to host the
             app yourself and enable all the supporter features for free!

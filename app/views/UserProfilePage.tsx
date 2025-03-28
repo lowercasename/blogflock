@@ -4,7 +4,7 @@ import { List } from "../models/List.ts";
 import { ListItem } from "./components/ListItem.tsx";
 import { Card } from "./components/Card.tsx";
 import { Stack } from "./components/Stack.tsx";
-import { CogIcon } from "./components/Icons.tsx";
+import { CogIcon, StarIcon } from "./components/Icons.tsx";
 import { Button, IconButtonLink } from "./components/Button.tsx";
 import { Input, MaxLengthTextarea } from "./components/Input.tsx";
 import { FlashMessage } from "./components/FlashMessage.tsx";
@@ -64,9 +64,14 @@ export function UserProfilePage(
           title={<UserBadge user={user} size="md" />}
           controls={isOwner
             ? (
-              <IconButtonLink icon={<CogIcon />} href="/settings">
-                Settings
-              </IconButtonLink>
+              <div class="flex gap-2">
+                <IconButtonLink icon={<CogIcon />} href="/settings">
+                  Settings
+                </IconButtonLink>
+                <IconButtonLink icon={<StarIcon />} href="/billing">
+                  Subscription
+                </IconButtonLink>
+              </div>
             )
             : null}
         >

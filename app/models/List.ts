@@ -267,6 +267,17 @@ export const getListByHashId = async (hashId: string): Promise<List | null> => {
   return await getListById(id);
 };
 
+export const getAllListsByUserId = async (
+  userId: number,
+): Promise<List[]> => {
+  const { rows } = await db.queryObject(
+    listQuery + " WHERE l.user_id = $1",
+    [userId],
+  );
+  const lists = await buildListsResponse(rows);
+  return lists || [];
+};
+
 export const createList = async (
   list: CreateList,
   userId: number,

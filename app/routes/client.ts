@@ -22,6 +22,7 @@ import { UserProfilePage } from "../views/UserProfilePage.tsx";
 import { ListPage } from "../views/ListPage.tsx";
 import { HomeFeedPage } from "../views/HomeFeedPage.tsx";
 import {
+  getBookmarkedPostsByUserId,
   getPostsForFollowedListsByUserId,
   getPostsForListsIds,
 } from "../models/Post.ts";
@@ -41,6 +42,7 @@ import { WelcomePage } from "../views/WelcomePage.tsx";
 import { ListSearchPage } from "../views/ListSearchPage.tsx";
 import { stripe } from "../lib/stripe.ts";
 import { db } from "../lib/db.ts";
+import { BookmarksPage } from "../views/BookmarksPage.tsx";
 
 const app = new Hono();
 
@@ -145,6 +147,23 @@ app.get("/list/:hashId/feed.xml", async (c: Context) => {
   return c.text(feed);
 });
 
+app.get("/bookmarks", jwtAuthMiddleware, async (c: Context) => {
+  const loggedInUser = c.get("user");
+  const [posts, hasMore] = await getBookmarkedPostsByUserId(
+    loggedInUser.id,
+    10,
+    0,
+    postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
+  );
+  return c.html(
+    BookmarksPage({
+      loggedInUser,
+      posts,
+      hasMore,
+    }),
+  );
+});
+
 app.get("/user/:username", jwtAuthMiddleware, async (c: Context) => {
   const loggedInUser = c.get("user");
   const user = await getUserByUsername(c.req.param("username"));
@@ -212,11 +231,13 @@ app.get("/billing", jwtAuthMiddleware, async (c: Context) => {
     };
   }
 
+  const priceId = Deno.env.get("BLOGFLOCK_SUPPORTER_PRICE_ID");
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [
       {
-        price: "price_1R7buBP6kFRQsQCeVqtziW1G",
+        price: priceId,
         quantity: 1,
       },
     ],

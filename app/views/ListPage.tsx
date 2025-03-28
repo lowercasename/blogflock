@@ -330,6 +330,9 @@ export function ListPage({
           page={1}
           list={list}
           className="order-2 md:order-1"
+          hasSubscription={loggedInUser
+            ?.blogflock_supporter_subscription_active}
+          type="posts"
         />
         <ListMeta list={list} isOwner={isOwner} loggedInUser={loggedInUser} />
       </div>

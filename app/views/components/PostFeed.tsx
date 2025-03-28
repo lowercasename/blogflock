@@ -29,12 +29,14 @@ export const NewPostsNotification = (
 };
 
 export const PostFeed = (
-  { posts, hasMore, page, list, className }: {
+  { posts, hasMore, page, list, className, hasSubscription, type }: {
     posts: PostType[];
     hasMore: boolean;
     page: number;
     list?: List;
     className?: string;
+    hasSubscription?: boolean;
+    type: "posts" | "bookmarks";
   },
 ) => {
   return (
@@ -44,19 +46,23 @@ export const PostFeed = (
       ws-connect={list?.hash_id ? `/lists/${list?.hash_id}/ws` : null}
       class={`w-full max-w-5xl mx-auto flex flex-col gap-4 ${className || ""}`}
       hx-trigger="postingFrequencyUpdated from:body"
-      hx-get={`/posts?page=1${list ? `&list=${list.hash_id}` : ""}`}
+      hx-get={`/posts?type=${type}&page=1${
+        list ? `&list=${list.hash_id}` : ""
+      }`}
       hx-swap="outerHTML"
       hx-target="#posts"
     >
       <NewPostsNotification list={list} display={false} />
       {posts.length
-        ? posts.map((post) => <Post key={post.id} post={post} />)
+        ? posts.map((post) => (
+          <Post key={post.id} post={post} hasSubscription={hasSubscription} />
+        ))
         : <Empty />}
       <div id="posts-slot">
         {hasMore && (
           <Button
             id="load-more"
-            hx-get={`/posts?page=${page + 1}${
+            hx-get={`/posts?type=${type}&page=${page + 1}${
               list ? `&list=${list.hash_id}` : ""
             }`}
             hx-swap="outerHTML"

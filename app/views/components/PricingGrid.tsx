@@ -28,9 +28,11 @@ export default function PricingGrid(
             <li>
               Follow lists created by others
             </li>
-            <li>
+            {
+              /* <li>
               View short blog post previews
-            </li>
+            </li> */
+            }
           </ul>
           {freeTierLink && (
             <div class="mt-auto">
@@ -53,13 +55,15 @@ export default function PricingGrid(
               {" "}
               lists
             </li>
-            <li>
+            {
+              /* <li>
               View{" "}
               <strong class="font-semibold text-orange-700">
                 full blog posts
               </strong>{" "}
               directly in BlogFlock
-            </li>
+            </li> */
+            }
             <li>
               <strong class="font-semibold text-orange-700">
                 Bookmark posts

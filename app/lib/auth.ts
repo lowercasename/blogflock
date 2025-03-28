@@ -32,6 +32,19 @@ export const jwtAuthMiddleware = async (c: Context, next: Next) => {
   }
 };
 
+export const hasSubscriptionMiddleware = async (c: Context, next: Next) => {
+  const user = c.get("user");
+  if (!user) {
+    c.status(403);
+    return c.text("Forbidden");
+  }
+  if (!user.blogflock_supporter_subscription_active) {
+    c.status(403);
+    return c.text("Forbidden");
+  }
+  await next();
+};
+
 export const redirectIfAuthenticated = async (c: Context, next: Next) => {
   const authCookie = await getSignedCookie(
     c,

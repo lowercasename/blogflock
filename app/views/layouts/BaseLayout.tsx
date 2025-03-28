@@ -40,6 +40,11 @@ export function BaseLayout(
           <nav className="flex gap-4">
             {loggedInUser && <Link href="/">Home</Link>}
             {loggedInUser && <Link href="/lists">Lists</Link>}
+            {loggedInUser?.blogflock_supporter_subscription_active && (
+              <Link href="/bookmarks">
+                Bookmarks
+              </Link>
+            )}
             {loggedInUser && (
               <Link href={`/user/${loggedInUser.username}`}>
                 Profile

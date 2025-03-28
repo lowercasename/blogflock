@@ -12,6 +12,7 @@ import { Flash } from "../lib/flash.ts";
 import { UserBadge } from "./components/UserBadge.tsx";
 import { LIST_DESCRIPTION_MAX_LENGTH } from "../routes/lists.ts";
 import SubscribeCallout from "./components/SubscribeCallout.tsx";
+import { Link } from "./components/Link.tsx";
 
 export function CreateListForm(
   { messages, formData }: {
@@ -95,7 +96,13 @@ export function UserProfilePage(
           <Stack
             items={createdLists.map((l) => <ListItem key={l.id} list={l} />)}
           />
-          {isOwner ? <CreateListForm /> : null}
+          {!loggedInUser.blogflock_supporter_subscription_active && (
+            <p class="text-gray-500 text-center my-4">
+              You can create 5 lists for free. To create unlimited lists, become
+              a <Link href="/billing">BlogFlock supporter</Link>.
+            </p>
+          )}
+          {(isOwner && createdLists.length < 5) && <CreateListForm />}
         </Card>
         <Card title={`Lists followed by ${user.username}`}>
           <Stack

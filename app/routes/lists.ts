@@ -7,6 +7,7 @@ import {
   createList,
   deleteList,
   getAllListsByFilter,
+  getAllListsByUserId,
   getListByHashId,
   updateList,
 } from "../models/List.ts";
@@ -61,7 +62,8 @@ const updateBlogInListSchema = z.object({
 // GET /lists/search - Show all lists with pagination and search
 app.get("/search", jwtAuthMiddleware, async (c: Context) => {
   const search = (c.req.query("search") || "").trim().toLowerCase();
-  const sort: SortValue = c.req.query("sort") as SortValue | undefined || "last_updated" as SortValue;
+  const sort: SortValue = c.req.query("sort") as SortValue | undefined ||
+    "last_updated" as SortValue;
   const page = Number(c.req.query("page")) || 1;
   const perPage = 10;
   const offset = (page - 1) * perPage;
@@ -90,6 +92,23 @@ app.post(
       return c.html(
         CreateListForm({ messages: validationErrors, formData }),
       );
+    }
+
+    // If this user doesn't have a supporter subscription, they can only create 5 lists
+    if (!user.blogflock_supporter_subscription_active) {
+      const userLists = await getAllListsByUserId(user.id);
+      if (userLists.length >= 5) {
+        return c.html(
+          CreateListForm({
+            messages: [{
+              type: "error",
+              message:
+                "You can only create 5 lists. Please delete one before creating a new one. BlogFlock Supporter subscribers can create unlimited lists.",
+            }],
+            formData,
+          }),
+        );
+      }
     }
 
     const list = await createList({

@@ -11,6 +11,7 @@ import { FlashMessage } from "./components/FlashMessage.tsx";
 import { Flash } from "../lib/flash.ts";
 import { UserBadge } from "./components/UserBadge.tsx";
 import { LIST_DESCRIPTION_MAX_LENGTH } from "../routes/lists.ts";
+import SubscribeCallout from "./components/SubscribeCallout.tsx";
 
 export function CreateListForm(
   { messages, formData }: {
@@ -84,6 +85,7 @@ export function UserProfilePage(
               </p>
             )}
         </Card>
+        <SubscribeCallout loggedInUser={loggedInUser} />
         <Card title={`Lists created by ${user.username}`}>
           <Stack
             items={createdLists.map((l) => <ListItem key={l.id} list={l} />)}

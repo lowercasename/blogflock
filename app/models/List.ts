@@ -208,7 +208,7 @@ export const getAllListsByFilter = async (
   filter: string,
   limit: number,
   offset: number,
-  sort: SortValue
+  sort: SortValue,
 ): Promise<[List[], boolean]> => {
   const { rows } = await db.queryObject(
     listQuery +
@@ -235,7 +235,7 @@ export const getAllListsByFilter = async (
     });
   } else if (sort === "last_updated") {
     // Subsequently sort by the last published blog
-    const listsWithDates = lists.map(list => {
+    const listsWithDates = lists.map((list) => {
       const lastPublishedAt = list.list_blogs?.reduce((acc, lb) => {
         if (!lb.blog.last_published_at) {
           return acc;
@@ -244,10 +244,10 @@ export const getAllListsByFilter = async (
           ? lb.blog.last_published_at
           : acc;
       }, new Date(0)) || new Date(0);
-      
+
       return {
         ...list,
-        lastPublishedAt: lastPublishedAt.getTime()
+        lastPublishedAt: lastPublishedAt.getTime(),
       };
     });
     listsWithDates.sort((a, b) => b.lastPublishedAt - a.lastPublishedAt);

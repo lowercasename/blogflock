@@ -2,6 +2,7 @@ import { List } from "../models/List.ts";
 import { Card } from "./components/Card.tsx";
 import { Link } from "./components/Link.tsx";
 import { ListItem } from "./components/ListItem.tsx";
+import PricingGrid from "./components/PricingGrid.tsx";
 import { Stack } from "./components/Stack.tsx";
 import { BaseLayout } from "./layouts/BaseLayout.tsx";
 
@@ -27,9 +28,20 @@ export function WelcomePage({ randomLists }: { randomLists: List[] }) {
             {" "}
             or send him an email.
           </p>
+          <h2 class="text-2xl font-bold">Support BlogFlock</h2>
           <p class="text-lg text-gray-600">
             BlogFlock will always be open source, ad-free, and anti-corporate;
             we love the IndieWeb.
+          </p>
+          <p class="text-lg text-gray-600">
+            If you choose to support the project, you get my sincere gratitude,
+            some neat extra features, and the knowledge that you're actively
+            helping BlogFlock to grow.
+          </p>
+          <PricingGrid />
+          <p class="text-lg text-gray-600">
+            Because BlogFlock is open source, you are always welcome to host the
+            app yourself and enable all the supporter features for free!
           </p>
         </div>
         <Card title="Some random lists">

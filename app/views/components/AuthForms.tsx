@@ -43,6 +43,10 @@ export function RegisterForm() {
           placeholder="Username"
           required
         />
+        <div class="text-sm text-gray-500 pb-2">
+          Letters, numbers, underscores (_) and dashes (-) only. At least 3
+          characters long.
+        </div>
         <Input type="email" name="email" placeholder="Email" required />
         <Input
           type="password"
@@ -50,6 +54,9 @@ export function RegisterForm() {
           placeholder="Password"
           required
         />
+        <div class="text-sm text-gray-500 pb-2">
+          At least 8 characters long.
+        </div>
         <Button type="submit">Register</Button>
       </form>
       <div class="flex flex-col gap-2">

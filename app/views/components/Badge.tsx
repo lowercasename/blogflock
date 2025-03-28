@@ -12,16 +12,26 @@ const sizeToIconSize = {
   lg: "size-6",
 };
 
+const colorToClasses = {
+  grey: "bg-stone-100 text-stone-600",
+  orange: "bg-orange-100 text-orange-700",
+};
+
 export const Badge = (
-  { children, size = "sm", icon, className }: PropsWithChildren<
+  { children, size = "sm", icon, className, color = "grey" }: PropsWithChildren<
     // deno-lint-ignore no-explicit-any
-    { size?: "sm" | "md" | "lg"; icon?: any; className?: string }
+    {
+      size?: "sm" | "md" | "lg";
+      icon?: any;
+      className?: string;
+      color?: "grey" | "orange";
+    }
   >,
 ) => (
   <span
-    class={`inline-flex items-center gap-1 rounded-full bg-stone-100 text-stone-600 ${
-      sizeToClasses[size]
-    } ${className}`}
+    class={`inline-flex items-center gap-1 rounded-full ${
+      colorToClasses[color]
+    } ${sizeToClasses[size]} ${className}`}
   >
     {icon && (
       <div class={`${sizeToIconSize[size]}`}>

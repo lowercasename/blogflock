@@ -26,6 +26,7 @@ import {
   getPostsForListsIds,
 } from "../models/Post.ts";
 import { SettingsPage } from "../views/SettingsPage.tsx";
+import { BillingPage } from "../views/BillingPage.tsx";
 import { wsClientsMap } from "../lib/websockets.ts";
 import { AuthFormLayout } from "../views/layouts/AuthFormPage.tsx";
 import {
@@ -38,6 +39,8 @@ import {
 } from "../views/components/AuthForms.tsx";
 import { WelcomePage } from "../views/WelcomePage.tsx";
 import { ListSearchPage } from "../views/ListSearchPage.tsx";
+import { stripe } from "../lib/stripe.ts";
+import { db } from "../lib/db.ts";
 
 const app = new Hono();
 
@@ -56,6 +59,7 @@ export const renderListPage = async (c: Context, page: number = 1) => {
     0,
     loggedInUser &&
       postingFrequencyLabelToNumber[loggedInUser.setting_posting_frequency],
+    loggedInUser?.id,
   );
 
   if (!list) {
@@ -77,7 +81,10 @@ app.get("/login", redirectIfAuthenticated, flash, (c: Context) => {
 
 app.get("/register", redirectIfAuthenticated, flash, (c: Context) => {
   return c.html(
-    AuthFormLayout({ title: "Register", children: RegisterForm() }),
+    AuthFormLayout({
+      title: "Create a BlogFlock account",
+      children: RegisterForm(),
+    }),
   );
 });
 
@@ -171,6 +178,67 @@ app.get("/", async (c: Context) => {
 app.get("/settings", jwtAuthMiddleware, (c: Context) => {
   const loggedInUser = c.get("user");
   return c.html(SettingsPage({ loggedInUser }));
+});
+
+app.get("/billing", jwtAuthMiddleware, async (c: Context) => {
+  const loggedInUser = c.get("user");
+
+  // Skip checkout if user already has active subscription
+  if (loggedInUser.blogflock_supporter_subscription_active) {
+    return c.html(BillingPage({ loggedInUser, session: null }));
+  }
+
+  let sessionParams = {};
+
+  if (loggedInUser.stripe_customer_id) {
+    // Use existing customer
+    sessionParams = {
+      customer: loggedInUser.stripe_customer_id,
+    };
+  } else {
+    // Create a new customer
+    const customer = await stripe.customers.create({
+      email: loggedInUser.email,
+      metadata: {
+        user_id: loggedInUser.id,
+      },
+    });
+    await db.queryObject(
+      "UPDATE users SET stripe_customer_id = $1 WHERE id = $2",
+      [customer.id, loggedInUser.id],
+    );
+    sessionParams = {
+      customer: customer.id,
+    };
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    line_items: [
+      {
+        price: "price_1R7buBP6kFRQsQCeVqtziW1G",
+        quantity: 1,
+      },
+    ],
+    ...sessionParams,
+    success_url:
+      "https://blogflock.com/api/billing/complete?session_id={CHECKOUT_SESSION_ID}",
+    cancel_url: "https://blogflock.com/billing",
+  });
+
+  return c.html(BillingPage({ loggedInUser, session }));
+});
+
+app.get("/billing/portal", jwtAuthMiddleware, async (c: Context) => {
+  const loggedInUser = c.get("user");
+  if (!loggedInUser.stripe_customer_id) {
+    return c.redirect("/billing");
+  }
+  const session = await stripe.billingPortal.sessions.create({
+    customer: loggedInUser.stripe_customer_id,
+    return_url: "https://blogflock.com/billing",
+  });
+  return c.redirect(session.url);
 });
 
 app.get("/lists", jwtAuthMiddleware, async (c: Context) => {

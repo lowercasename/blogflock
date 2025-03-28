@@ -40,6 +40,8 @@ export const UserSchema = z.object({
   email_verification_token_expires_at: z.coerce.date().nullable(),
   hash_id: z.string().nullable(),
   setting_posting_frequency: PostingFrequencyEnum,
+  stripe_customer_id: z.string().nullable(),
+  blogflock_supporter_subscription_active: z.boolean(),
 });
 
 export type UserObject = z.infer<typeof UserSchema>;

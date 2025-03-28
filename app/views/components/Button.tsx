@@ -22,6 +22,25 @@ export function Button({ children, icon, ...props }: PropsWithChildren<Props>) {
   );
 }
 
+export function ButtonLink(
+  { children, icon, href, ...props }: PropsWithChildren<Props>,
+) {
+  return (
+    <a
+      href={href}
+      class="w-full py-2 bg-orange-200 text-orange-700 rounded shadow-sharp font-bold hover:bg-orange-300 flex items-center gap-2 justify-center"
+      {...props}
+    >
+      {icon && (
+        <div class="size-5">
+          {icon}
+        </div>
+      )}
+      {children}
+    </a>
+  );
+}
+
 export function IconButton(
   { children, icon, ...props }: PropsWithChildren<Props>,
 ) {

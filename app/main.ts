@@ -13,6 +13,7 @@ import { serveStatic } from "hono/deno";
 import { broadcastNewPost } from "./lib/websockets.ts";
 import { getAllListsContainingBlog } from "./models/List.ts";
 import z from "https://deno.land/x/zod@v3.23.8/index.ts";
+import billing from "./routes/billing.ts";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -74,6 +75,7 @@ app.use("/static/*", serveStatic({ root: "./" }));
 
 app.route("/auth", auth);
 app.route("/lists", lists);
+app.route("/api/billing", billing);
 app.route("/api", api);
 app.route("/posts", posts);
 app.route("/users", users);

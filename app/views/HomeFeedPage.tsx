@@ -8,6 +8,7 @@ import { Card } from "./components/Card.tsx";
 import { Stack } from "./components/Stack.tsx";
 import { PostingFrequencyForm } from "./SettingsPage.tsx";
 import { Link } from "./components/Link.tsx";
+import SubscribeCallout from "./components/SubscribeCallout.tsx";
 
 export const HomeFeedPage = (
   { loggedInUser, posts, hasMore, randomLists }: {
@@ -33,6 +34,7 @@ export const HomeFeedPage = (
           <Card title="Filter by posting frequency">
             <PostingFrequencyForm loggedInUser={loggedInUser} />
           </Card>
+          <SubscribeCallout loggedInUser={loggedInUser} />
           <Card title="Random lists">
             <Stack
               items={randomLists.map((l) => <ListItem key={l.id} list={l} />)}

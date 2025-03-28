@@ -17,9 +17,9 @@ export function Card(
 ) {
   return (
     <div
-      class={`shadow-sharp rounded-lg bg-white ${padding ? "p-4" : ""} w-full ${
-        className || ""
-      }`}
+      class={`shadow-sharp rounded-lg bg-white overflow-hidden ${
+        padding ? "p-4" : ""
+      } w-full ${className || ""}`}
       id={id}
     >
       {title && (

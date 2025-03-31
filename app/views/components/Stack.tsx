@@ -10,29 +10,29 @@ export function Stack({ items, showInitial }: Props) {
 
   return (
     <ul
-      className="flex flex-col divide-y divide-gray-200 border border-gray-200 rounded"
+      class="flex flex-col divide-y divide-gray-200 border border-gray-200 rounded"
       x-data="{ showMore: false }"
     >
       {items.length
         ? initialItems.map((item, index) => (
-          <li className="py-2 px-4" key={index}>
+          <li class="py-2 px-4" key={index}>
             {item}
           </li>
         ))
         : (
-          <li className="py-2 px-4 text-gray-500 text-center bg-gray-100 text-sm">
+          <li class="py-2 px-4 text-gray-500 text-center bg-gray-100 text-sm">
             Nothing here.
           </li>
         )}
       {showMore && (
         <li
-          className="py-4 px-4 text-gray-500 text-center bg-gray-100 shadow-inner"
+          class="py-4 px-4 text-gray-500 text-center bg-gray-100 shadow-inner"
           x-show="!showMore"
         >
           {remainingItems.length} more &middot;{" "}
           <button
             type="button"
-            className="font-semibold text-orange-500 hover:text-orange-300 inline"
+            class="font-semibold text-orange-500 hover:text-orange-300 inline"
             x-on:click="showMore = !showMore"
           >
             show all
@@ -41,7 +41,7 @@ export function Stack({ items, showInitial }: Props) {
       )}
       {showMore &&
         remainingItems.map((item, index) => (
-          <li className="py-2 px-4" key={index} x-show="showMore">
+          <li class="py-2 px-4" key={index} x-show="showMore">
             {item}
           </li>
         ))}

@@ -5,7 +5,7 @@ import { Link } from "./Link.tsx";
 import { UserBadge } from "./UserBadge.tsx";
 
 export const ListItem = ({ list }: { list: List }) => (
-  <div className="flex flex-col gap-1">
+  <div class="flex flex-col gap-1">
     <header class="flex flex-col gap-1 mb-1">
       <div>
         <div class="inline-flex size-4 mr-1 relative top-0.5">

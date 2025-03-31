@@ -20,9 +20,9 @@ const HTMLLayout = (props: HTMLLayoutProps) =>
         <title>BlogFlock</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="/static/favicon.png" />
-        <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-        <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/ws.js"></script>
-        <script src="https://unpkg.com/alpinejs" defer></script>
+        <script src="/static/js/htmx.2.0.3.js"></script>
+        <script src="/static/js/htmx.ws.1.9.12.js"></script>
+        <script src="/static/js/alpinejs.3.14.9.js"></script>
         <link rel="stylesheet" href="/static/style.css" />
       </head>
       <body class="bg-stone-100 flex flex-col min-h-screen font-rethink-sans" hx-boost>

@@ -5,8 +5,20 @@ import { Empty } from "./Empty.tsx";
 import { Post } from "./Post.tsx";
 
 export const NewPostsNotification = (
-  { list, display }: { list?: List; display: boolean },
+  { list, display, type }: {
+    list?: List;
+    display: boolean;
+    type: "posts" | "bookmarks";
+  },
 ) => {
+  const newPostsUrlParams = new URLSearchParams();
+  newPostsUrlParams.set("type", type);
+  newPostsUrlParams.set("page", "1");
+  if (list) {
+    newPostsUrlParams.set("list", list.hash_id);
+  }
+  const newPostsUrl = `/posts?${newPostsUrlParams.toString()}`;
+
   return (
     <div
       class={`${
@@ -15,7 +27,7 @@ export const NewPostsNotification = (
           : "w-full py-2 bg-orange-200 text-orange-700 rounded shadow-sharp font-bold hover:bg-orange-300 flex items-center gap-2 justify-center"
       }`}
       id="new-posts-notification"
-      hx-get={`/posts?page=1${list ? `&list=${list.hash_id}` : ""}`}
+      hx-get={newPostsUrl}
       hx-swap="outerHTML"
       hx-target="#posts"
     >
@@ -39,6 +51,22 @@ export const PostFeed = (
     type: "posts" | "bookmarks";
   },
 ) => {
+  const websocketUrlParams = new URLSearchParams();
+  websocketUrlParams.set("type", type);
+  websocketUrlParams.set("page", "1");
+  if (list) {
+    websocketUrlParams.set("list", list.hash_id);
+  }
+  const websocketUrl = `/posts?${websocketUrlParams.toString()}`;
+
+  const loadMoreUrlParams = new URLSearchParams();
+  loadMoreUrlParams.set("type", type);
+  loadMoreUrlParams.set("page", (page + 1).toString());
+  if (list) {
+    loadMoreUrlParams.set("list", list.hash_id);
+  }
+  const loadMoreUrl = `/posts?${loadMoreUrlParams.toString()}`;
+
   return (
     <div
       id="posts"
@@ -46,13 +74,11 @@ export const PostFeed = (
       ws-connect={list?.hash_id ? `/lists/${list?.hash_id}/ws` : null}
       class={`w-full max-w-5xl mx-auto flex flex-col gap-4 ${className || ""}`}
       hx-trigger="postingFrequencyUpdated from:body"
-      hx-get={`/posts?type=${type}&page=1${
-        list ? `&list=${list.hash_id}` : ""
-      }`}
+      hx-get={websocketUrl}
       hx-swap="outerHTML"
       hx-target="#posts"
     >
-      <NewPostsNotification list={list} display={false} />
+      <NewPostsNotification list={list} display={false} type={type} />
       {posts.length
         ? posts.map((post) => (
           <Post key={post.id} post={post} hasSubscription={hasSubscription} />
@@ -62,9 +88,7 @@ export const PostFeed = (
         {hasMore && (
           <Button
             id="load-more"
-            hx-get={`/posts?type=${type}&page=${page + 1}${
-              list ? `&list=${list.hash_id}` : ""
-            }`}
+            hx-get={loadMoreUrl}
             hx-swap="outerHTML"
             hx-target="#posts-slot"
           >

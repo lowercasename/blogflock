@@ -72,7 +72,9 @@ export const PostFeed = (
       id="posts"
       hx-ext="ws"
       ws-connect={list?.hash_id ? `/lists/${list?.hash_id}/ws` : null}
-      class={`w-full max-w-5xl mx-auto flex flex-col gap-4 ${className || ""}`}
+      class={`w-full max-w-[48rem] mx-auto flex flex-col gap-4 ${
+        className || ""
+      }`}
       hx-trigger="postingFrequencyUpdated from:body"
       hx-get={websocketUrl}
       hx-swap="outerHTML"

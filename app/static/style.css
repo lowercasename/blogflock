@@ -716,12 +716,12 @@ video {
   width: 100%;
 }
 
-.max-w-5xl{
-  max-width: 64rem;
-}
-
 .max-w-\[1200px\]{
   max-width: 1200px;
+}
+
+.max-w-\[48rem\]{
+  max-width: 48rem;
 }
 
 .max-w-\[800px\]{

@@ -13,23 +13,14 @@ import (
 
 	"github.com/joho/godotenv"
 	amqp "github.com/rabbitmq/amqp091-go"
-)
 
-type Feed struct {
-	AutoDescription string `json:"auto_description"`
-	AutoImageUrl    string `json:"auto_image_url"`
-	AutoTitle       string `json:"auto_title"`
-	CreatedAt       string `json:"created_at"`
-	FeedUrl         string `json:"feed_url"`
-	HashId          string `json:"hash_id"`
-	ID              int    `json:"id"`
-	LastFetchedAt   string `json:"last_fetched_at"`
-	SiteUrl         string `json:"site_url"`
-}
+	"github.com/lowercasename/blogflock/feed-scraper/database"
+)
 
 type AppMetrics struct {
 	LastSuccessfulRun atomic.Value
 	IsHealthy         atomic.Bool
+	DbConnected       atomic.Bool
 }
 
 var metrics AppMetrics
@@ -46,38 +37,36 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func processFeedQueue(ctx context.Context, ch *amqp.Channel, feedQueue amqp.Queue, apiUrl string) error {
-	client := http.Client{
-		Timeout: 5 * time.Second,
-	}
-
-	resp, err := client.Get(apiUrl + "/api/blogs?skipOrphans=true")
-	if err != nil {
+func processFeedQueue(ctx context.Context, ch *amqp.Channel, feedQueue amqp.Queue) error {
+	var dbErr error
+	db, dbErr := database.InitDB()
+	if dbErr != nil {
+		log.Printf("Failed to connect to database: %v", dbErr)
+		metrics.DbConnected.Store(false)
 		metrics.IsHealthy.Store(false)
-		return err
+	} else {
+		metrics.DbConnected.Store(true)
+		log.Printf("Connected to database")
 	}
-	defer resp.Body.Close()
 
-	var feeds []Feed
-	err = json.NewDecoder(resp.Body).Decode(&feeds)
+	blogs, err := db.GetBlogs()
 	if err != nil {
+		log.Printf("Failed to get blogs: %v", err)
 		metrics.IsHealthy.Store(false)
-		return err
 	}
+	log.Printf("Fetched %d blogs", len(blogs))
 
-	log.Printf("Fetched %d feeds", len(feeds))
-
-	for _, feed := range feeds {
-		feedJson, err := json.Marshal(feed)
+	for _, blog := range blogs {
+		feedJson, err := json.Marshal(blog)
 		if err != nil {
 			metrics.IsHealthy.Store(false)
 			return err
 		}
 
-		feedHasNeverBeenFetched := feed.LastFetchedAt == ""
+		feedHasNeverBeenFetched := !blog.LastFetchedAt.Valid || blog.LastFetchedAt.String == ""
 		var timeLastFetched time.Time
 		if !feedHasNeverBeenFetched {
-			timeLastFetched, err = time.Parse(time.RFC3339, feed.LastFetchedAt)
+			timeLastFetched, err = time.Parse(time.RFC3339, blog.LastFetchedAt.String)
 			if err != nil {
 				metrics.IsHealthy.Store(false)
 				return err
@@ -99,9 +88,9 @@ func processFeedQueue(ctx context.Context, ch *amqp.Channel, feedQueue amqp.Queu
 				metrics.IsHealthy.Store(false)
 				return err
 			}
-			log.Printf(" [x] Sent %s", feed.FeedUrl)
+			log.Printf(" [x] Sent %s", blog.FeedUrl)
 		} else {
-			log.Printf(" [x] Skipping %s", feed.FeedUrl)
+			log.Printf(" [x] Skipping %s", blog.FeedUrl)
 		}
 	}
 
@@ -128,6 +117,15 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "# HELP feed_sender_last_successful_run_timestamp_seconds Unix timestamp of last successful run\n")
 		fmt.Fprintf(w, "# TYPE feed_sender_last_successful_run_timestamp_seconds gauge\n")
 		fmt.Fprintf(w, "feed_sender_last_successful_run_timestamp_seconds %d\n", lastRun.Unix())
+
+		fmt.Fprintf(w, "# HELP feed_sender_db_connected Whether the feed sender is connected to the database\n")
+		fmt.Fprintf(w, "# TYPE feed_sender_db_connected gauge\n")
+		if metrics.DbConnected.Load() {
+			fmt.Fprintf(w, "feed_sender_db_connected 1\n")
+		} else {
+			fmt.Fprintf(w, "feed_sender_db_connected 0\n")
+		}
+
 		fmt.Fprintf(w, "# EOF\n")
 		return
 	}
@@ -135,9 +133,11 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	status := struct {
 		Status            string    `json:"status"`
 		LastSuccessfulRun time.Time `json:"lastSuccessfulRun"`
+		DbConnected       bool      `json:"dbConnected"`
 	}{
 		Status:            "healthy",
 		LastSuccessfulRun: lastRun,
+		DbConnected:       metrics.DbConnected.Load(),
 	}
 
 	if !isHealthy {
@@ -156,7 +156,6 @@ func main() {
 	rabbitmqUser := os.Getenv("RABBITMQ_USER")
 	rabbitmqPassword := os.Getenv("RABBITMQ_PASSWORD")
 	rabbitmqHost := os.Getenv("RABBITMQ_HOST")
-	apiUrl := os.Getenv("API_URL")
 
 	go func() {
 		http.HandleFunc("/health", healthHandler)
@@ -199,7 +198,7 @@ func main() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		err = processFeedQueue(ctx, ch, feedQueue, apiUrl)
+		err = processFeedQueue(ctx, ch, feedQueue)
 		if err != nil {
 			log.Printf("Error processing feed queue: %s", err)
 			metrics.IsHealthy.Store(false)

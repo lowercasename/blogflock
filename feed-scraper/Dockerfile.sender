@@ -10,6 +10,6 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o feed-sender ./sender/sender.go
+RUN go build -o feed-sender ./feed_sender/feed_sender.go
 
 CMD ["./feed-sender"]

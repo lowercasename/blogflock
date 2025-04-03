@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -14,31 +13,11 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 	"github.com/mmcdole/gofeed"
 	amqp "github.com/rabbitmq/amqp091-go"
+
+	"github.com/lowercasename/blogflock/feed-scraper/database"
 )
-
-type Feed struct {
-	AutoDescription string `json:"auto_description"`
-	AutoImageUrl    string `json:"auto_image_url"`
-	AutoTitle       string `json:"auto_title"`
-	CreatedAt       string `json:"created_at"`
-	FeedUrl         string `json:"feed_url"`
-	HashId          string `json:"hash_id"`
-	ID              int    `json:"id"`
-	LastFetchedAt   string `json:"last_fetched_at"`
-	SiteUrl         string `json:"site_url"`
-}
-
-type Post struct {
-	Title       string `json:"title"`
-	Content     string `json:"content"`
-	URL         string `json:"url"`
-	PublishedAt string `json:"published_at"`
-	GUID        string `json:"guid"`
-	BlogID      int    `json:"blog_id"`
-}
 
 type AppMetrics struct {
 	LastSuccessfulRun   atomic.Value
@@ -52,7 +31,6 @@ type AppMetrics struct {
 }
 
 var metrics AppMetrics
-var db *sql.DB
 
 func failOnError(err error, msg string) {
 	if err != nil {
@@ -194,21 +172,7 @@ func hashString(input string) string {
 	return hex.EncodeToString(hashBytes)
 }
 
-func connectToDatabase(connStr string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		return nil, err
-	}
-
-	err = db.Ping()
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
-func generatePostGUID(post Post) (string, error) {
+func generatePostGUID(post database.Post) (string, error) {
 	if post.GUID != "" {
 		return post.GUID, nil
 	}
@@ -226,94 +190,21 @@ func generatePostGUID(post Post) (string, error) {
 	return hashString(input), nil
 }
 
-func getPostByGuid(guid string, blogId int) (bool, error) {
-	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM posts WHERE guid = $1 AND blog_id = $2", guid, blogId).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-func createPost(post Post) (int, error) {
-	var id int
-	publishedAt, err := time.Parse(time.RFC3339, post.PublishedAt)
-	if err != nil {
-		return 0, fmt.Errorf("invalid published_at date: %v", err)
+func parseLastModifiedHeader(lastModified string) (time.Time, error) {
+	// Try standard RFC1123 format first (zero-padded days)
+	t, err := time.Parse(time.RFC1123, lastModified)
+	if err == nil {
+		return t, nil
 	}
 
-	// Insert the post
-	err = db.QueryRow(`
-		INSERT INTO posts (
-			blog_id,
-			title,
-			content,
-			url,
-			published_at,
-			guid,
-			created_at
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id
-	`, post.BlogID, post.Title, post.Content, post.URL, publishedAt, post.GUID, time.Now()).Scan(&id)
-
-	if err != nil {
-		return 0, err
+	// If that fails, try non-zero-padded days
+	const customTimeFormat = "Mon, 2 Jan 2006 15:04:05 GMT"
+	t, err = time.Parse(customTimeFormat, lastModified)
+	if err == nil {
+		return t, nil
 	}
 
-	return id, nil
-}
-
-func updateBlogLastFetchedAt(blogId int) error {
-	_, err := db.Exec("UPDATE blogs SET last_fetched_at = $1 WHERE id = $2",
-		time.Now().Format(time.RFC3339), blogId)
-	return err
-}
-
-func updateBlogPostsLastMonth(blogId int) error {
-	_, err := db.Exec(`
-		UPDATE blogs
-		SET posts_last_month = (
-			SELECT COUNT(*)
-			FROM posts
-			WHERE blog_id = $1
-			AND published_at >= (CURRENT_TIMESTAMP - INTERVAL '1 month')
-		)
-		WHERE id = $1
-	`, blogId)
-	return err
-}
-
-func updateBlogLastPublishedAt(blogId int) error {
-	_, err := db.Exec(`
-		UPDATE blogs
-		SET last_published_at = (
-			SELECT MAX(published_at)
-			FROM posts
-			WHERE blog_id = $1
-		)
-		WHERE id = $1
-	`, blogId)
-	return err
-}
-
-func updateBlogStats(blogId int) error {
-	err := updateBlogLastFetchedAt(blogId)
-	if err != nil {
-		return err
-	}
-
-	err = updateBlogPostsLastMonth(blogId)
-	if err != nil {
-		return err
-	}
-
-	err = updateBlogLastPublishedAt(blogId)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return time.Time{}, fmt.Errorf("failed to parse time: %v", err)
 }
 
 func main() {
@@ -331,9 +222,8 @@ func main() {
 	metrics.IsHealthy.Store(false)
 	metrics.ErrorCount.Store(0)
 
-	dbUrl := os.Getenv("DATABASE_URL")
 	var dbErr error
-	db, dbErr = connectToDatabase(dbUrl)
+	db, dbErr := database.InitDB()
 	if dbErr != nil {
 		log.Printf("Failed to connect to database: %v", dbErr)
 		metrics.DbConnected.Store(false)
@@ -411,7 +301,7 @@ func main() {
 					}()
 
 					log.Printf("Received a message: %s", d.Body)
-					var feedData Feed
+					var feedData database.Blog
 					err := json.Unmarshal(d.Body, &feedData)
 					if err != nil {
 						metrics.ErrorCount.Add(1)
@@ -422,7 +312,58 @@ func main() {
 					}
 
 					trimmedUrl := strings.TrimSpace(feedData.FeedUrl)
-					feed, err := fp.ParseURL(trimmedUrl)
+
+					// Set up the HTTP request
+					req, err := http.NewRequest("GET", trimmedUrl, nil)
+					if err != nil {
+						metrics.ErrorCount.Add(1)
+						metrics.IsHealthy.Store(false)
+						log.Printf("Failed to create request for feed %s: %v", trimmedUrl, err)
+						d.Ack(false)
+						return
+					}
+					req.Header.Set("User-Agent", "BlogFlock/1.0")
+					if feedData.LastModifiedAt.Valid && feedData.LastModifiedAt.String != "" {
+						lastModifiedAt, err := time.Parse(time.RFC3339, feedData.LastModifiedAt.String)
+						if err != nil {
+							metrics.ErrorCount.Add(1)
+							metrics.IsHealthy.Store(false)
+							log.Printf("Failed to parse last modified date: %v", err)
+							d.Ack(false)
+							return
+						}
+						req.Header.Set("If-Modified-Since", lastModifiedAt.Format(time.RFC1123))
+					}
+					client := &http.Client{
+						Timeout: 10 * time.Second,
+					}
+
+					// Fetch the feed
+					resp, err := client.Do(req)
+					if err != nil {
+						metrics.ErrorCount.Add(1)
+						metrics.IsHealthy.Store(false)
+						log.Printf("Failed to fetch feed %s: %v", trimmedUrl, err)
+						d.Ack(false)
+						return
+					}
+					defer resp.Body.Close()
+					if resp.StatusCode == http.StatusNotModified {
+						// In response to our If-Modified-Since header, the server
+						// has indicated that the feed has not changed since the last fetch.
+						log.Printf("Feed %s has not changed since last fetch", trimmedUrl)
+						d.Ack(false)
+						return
+					} else if resp.StatusCode != http.StatusOK {
+						metrics.ErrorCount.Add(1)
+						metrics.IsHealthy.Store(false)
+						log.Printf("Failed to fetch feed %s: %s", trimmedUrl, resp.Status)
+						d.Ack(false)
+						return
+					}
+
+					// Parse the feed
+					feed, err := fp.Parse(resp.Body)
 					if err != nil || feed == nil {
 						metrics.ErrorCount.Add(1)
 						metrics.IsHealthy.Store(false)
@@ -432,11 +373,22 @@ func main() {
 					}
 
 					log.Printf("Fetched feed %s with %d items", feed.Title, len(feed.Items))
+
+					// Update the feed last modified time if we received the header
+					if resp.Header.Get("Last-Modified") != "" {
+						lastModifiedAt, err := parseLastModifiedHeader(resp.Header.Get("Last-Modified"))
+						if err != nil {
+							log.Printf("Failed to parse last modified date: %v", err)
+						} else {
+							db.UpdateBlogLastModifiedAt(feedData.ID, lastModifiedAt)
+						}
+					}
+
 					feedItemsPublishedAfterLastFetchedAt := make([]*gofeed.Item, 0)
-					feedHasNeverBeenFetched := feedData.LastFetchedAt == ""
+					feedHasNeverBeenFetched := !feedData.LastFetchedAt.Valid || feedData.LastFetchedAt.String == ""
 					var feedLastFetchedAtParsed time.Time
 					if !feedHasNeverBeenFetched {
-						feedLastFetchedAtParsed, err = time.Parse(time.RFC3339, feedData.LastFetchedAt)
+						feedLastFetchedAtParsed, err = time.Parse(time.RFC3339, feedData.LastFetchedAt.String)
 						failOnError(err, "Failed to parse last fetched at")
 					}
 					if len(feed.Items) == 0 {
@@ -457,7 +409,7 @@ func main() {
 						if contentOrDescription == "" {
 							contentOrDescription = item.Description
 						}
-						post := Post{
+						post := database.Post{
 							Title:       item.Title,
 							Content:     contentOrDescription,
 							URL:         item.Link,
@@ -473,7 +425,7 @@ func main() {
 							continue
 						}
 
-						exists, err := getPostByGuid(postGuid, post.BlogID)
+						exists, err := db.GetPostByGuid(postGuid, post.BlogID)
 						if err != nil {
 							log.Printf("Error checking if post exists: %v", err)
 							metrics.ErrorCount.Add(1)
@@ -485,7 +437,7 @@ func main() {
 							continue
 						}
 
-						postID, err := createPost(post)
+						postID, err := db.CreatePost(post)
 						if err != nil {
 							log.Printf("Failed to create post: %v", err)
 							metrics.ErrorCount.Add(1)
@@ -512,7 +464,7 @@ func main() {
 						savedPostsCount++
 					}
 
-					err = updateBlogStats(feedData.ID)
+					err = db.UpdateBlogStats(feedData.ID)
 					if err != nil {
 						log.Printf("Failed to update blog stats: %v", err)
 						metrics.ErrorCount.Add(1)

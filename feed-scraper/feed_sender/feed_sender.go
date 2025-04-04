@@ -73,7 +73,7 @@ func processFeedQueue(ctx context.Context, ch *amqp.Channel, feedQueue amqp.Queu
 			}
 		}
 
-		if feedHasNeverBeenFetched || time.Since(timeLastFetched) > time.Minute*15 {
+		if feedHasNeverBeenFetched || time.Since(timeLastFetched) >= time.Minute*60 {
 			err = ch.PublishWithContext(ctx,
 				"",             // exchange
 				feedQueue.Name, // routing key
@@ -207,7 +207,7 @@ func main() {
 
 	runProcessor()
 
-	ticker := time.NewTicker(10 * time.Minute)
+	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
 	for range ticker.C {

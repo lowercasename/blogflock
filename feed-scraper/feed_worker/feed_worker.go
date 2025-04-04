@@ -219,7 +219,7 @@ func main() {
 	metrics.LastConnectionTime.Store(time.Time{})
 	metrics.RabbitMQConnected.Store(false)
 	metrics.DbConnected.Store(false)
-	metrics.IsHealthy.Store(false)
+	metrics.IsHealthy.Store(true)
 	metrics.ErrorCount.Store(0)
 
 	var dbErr error
@@ -288,6 +288,10 @@ func main() {
 
 		connClose := make(chan *amqp.Error)
 		conn.NotifyClose(connClose)
+
+		metrics.RabbitMQConnected.Store(true)
+		metrics.LastConnectionTime.Store(time.Now())
+		metrics.IsHealthy.Store(true)
 
 		go func() {
 			for d := range msgs {

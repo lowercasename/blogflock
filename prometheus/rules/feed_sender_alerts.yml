@@ -4,12 +4,12 @@ groups:
       - alert: FeedSenderUnhealthy
         expr: |
           feed_sender_healthy == 0
-        for: 2m
+        for: 30m
         labels:
           severity: critical
         annotations:
           summary: "Feed Sender is unhealthy"
-          description: "Feed Sender health check has been failing for more than 2 minutes"
+          description: "Feed Sender health check has been failing for more than 30 minutes"
 
       - alert: FeedSenderNoUpdates
         expr: |
@@ -25,21 +25,21 @@ groups:
     rules:
       - alert: FeedWorkerUnhealthy
         expr: feed_worker_healthy == 0
-        for: 30m
+        for: 2h
         labels:
           severity: warning
         annotations:
           summary: "Feed Worker is unhealthy"
-          description: "Feed Worker instance {{ $labels.instance }} health check has been failing for more than 30 minutes"
+          description: "Feed Worker instance {{ $labels.instance }} health check has been failing for more than 2 hours"
 
       - alert: AllFeedWorkersUnhealthy
         expr: sum(feed_worker_healthy) == 0
-        for: 30m
+        for: 2h
         labels:
           severity: critical
         annotations:
           summary: "All Feed Workers are unhealthy"
-          description: "All Feed Worker instances are failing health checks for more than 30 minutes"
+          description: "All Feed Worker instances are failing health checks for more than 2 hours"
 
       - alert: FeedWorkerHighErrorRate
         expr: rate(feed_worker_errors_total[5m]) > 0.1

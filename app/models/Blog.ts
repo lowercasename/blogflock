@@ -125,7 +125,13 @@ export const getBlogFeedUrlFromUrl = async (
   }
   try {
     // Attempt to fetch feed from the URL directly (in case it's a feed URL)
-    const res = await fetch(url);
+    const c = new AbortController();
+    const id = setTimeout(() => c.abort(), 5000);
+    const res = await fetch(url, {
+      headers: { "User-Agent": "BlogFlock/1.0" },
+      signal: c.signal,
+    });
+    clearTimeout(id);
     if (!res.ok) {
       return autodiscoverFeedUrl();
     }
@@ -134,7 +140,8 @@ export const getBlogFeedUrlFromUrl = async (
       return url;
     }
     return autodiscoverFeedUrl();
-  } catch (_: unknown) {
+  } catch (e: unknown) {
+    console.log("Failed to fetch feed URL:", e);
     return autodiscoverFeedUrl();
   }
 };

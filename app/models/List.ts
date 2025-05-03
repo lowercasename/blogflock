@@ -41,7 +41,7 @@ export type CreateList = Pick<List, "name" | "description">;
 export type UpdateList = Pick<List, "name" | "description">;
 
 const listQuery = `
-    SELECT 
+    SELECT
         l.id as list_id,
         l.hash_id as list_hash_id,
         l.user_id as list_user_id,
@@ -233,6 +233,13 @@ export const getAllListsByFilter = async (
       const bBlogs = b.list_blogs?.length || 0;
       return bBlogs - aBlogs;
     });
+  } else if (sort === "last_created") {
+    // Subsequently sort by the last created date of list
+    lists.sort((a, b) => {
+      const aCreatedAt = a.created_at || new Date(0);
+      const bCreatedAt = b.created_at || new Date(0);
+      return bCreatedAt.getTime() - aCreatedAt.getTime();
+    });
   } else if (sort === "last_updated") {
     // Subsequently sort by the last published blog
     const listsWithDates = lists.map((list) => {
@@ -283,7 +290,7 @@ export const createList = async (
   userId: number,
 ): Promise<List | null> => {
   const result = await queryOne<{ id: number }>`
-        INSERT INTO lists (user_id, name, description, is_private, created_at) 
+        INSERT INTO lists (user_id, name, description, is_private, created_at)
         VALUES (${userId}, ${list.name}, ${list.description}, false, ${
     new Date().toISOString()
   })
@@ -308,7 +315,7 @@ export const updateList = async (
         UPDATE lists
         SET
             name = ${list.name},
-            description = ${list.description} 
+            description = ${list.description}
         WHERE id = ${id}
     `;
   return await getListById(id);

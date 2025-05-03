@@ -6,7 +6,7 @@ import { Input, Select } from "./components/Input.tsx";
 import { Button } from "./components/Button.tsx";
 import { SortIcon } from "./components/Icons.tsx";
 
-export type SortValue = "last_updated" | "most_followed" | "most_blogs";
+export type SortValue = "last_updated" | "most_followed" | "most_blogs" | "last_created";
 
 export const ListSearchPage = (
   { loggedInUser, lists, hasMore, search, sort = "last_updated" }: {
@@ -45,6 +45,7 @@ export const ListSearchPage = (
                   { value: "last_updated", text: "Most recent posts" },
                   { value: "most_followed", text: "Most followed" },
                   { value: "most_blogs", text: "Most blogs" },
+                  { value: "last_created", text: "Most recently created lists" }
                 ] satisfies { value: SortValue; text: string }[]}
                 hx-get="/lists/search"
                 hx-swap="outerHTML"

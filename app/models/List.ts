@@ -161,6 +161,7 @@ const buildListsResponse = async (rows: unknown[]): Promise<List[] | null> => {
     },
   ];
   const result = joinjs.default.map(rows, resultMaps, "listMap", "list_");
+  console.log(result);
   return await z.array(ListSchema).parseAsync(result);
 };
 
@@ -173,9 +174,12 @@ export const getListById = async (id: number): Promise<List | null> => {
 export const getCreatedListsByUserId = async (
   userId: number,
 ): Promise<List[]> => {
-  const { rows } = await db.queryObject(listQuery + " WHERE l.user_id = $1", [
-    userId,
-  ]);
+  const { rows } = await db.queryObject(
+    listQuery
+    + " WHERE l.user_id = $1"
+    + " ORDER BY l.name ASC",
+    [userId],
+  );
   return await buildListsResponse(rows) || [];
 };
 
@@ -183,7 +187,8 @@ export const getAllListsContainingBlog = async (
   blogId: number,
 ): Promise<List[]> => {
   const { rows } = await db.queryObject(
-    listQuery + " WHERE lb.blog_id = $1",
+    listQuery + " WHERE lb.blog_id = $1"
+    + " ORDER BY l.name ASC",
     [blogId],
   );
   return await buildListsResponse(rows) || [];
@@ -193,7 +198,10 @@ export const getFollowedListsByUserId = async (
   userId: number,
 ): Promise<List[]> => {
   const { rows } = await db.queryObject(
-    listQuery + " WHERE lf.user_id = $1",
+    "WITH followed_lists AS (SELECT DISTINCT list_id FROM list_followers WHERE user_id = $1)"
+    + listQuery
+    + " WHERE l.id IN (SELECT list_id FROM followed_lists)"
+    + " ORDER BY l.name ASC",
     [userId],
   );
   return await buildListsResponse(rows) || [];
@@ -278,7 +286,8 @@ export const getAllListsByUserId = async (
   userId: number,
 ): Promise<List[]> => {
   const { rows } = await db.queryObject(
-    listQuery + " WHERE l.user_id = $1",
+    listQuery + " WHERE l.user_id = $1"
+      + " ORDER BY l.name ASC",
     [userId],
   );
   const lists = await buildListsResponse(rows);

@@ -161,7 +161,6 @@ const buildListsResponse = async (rows: unknown[]): Promise<List[] | null> => {
     },
   ];
   const result = joinjs.default.map(rows, resultMaps, "listMap", "list_");
-  console.log(result);
   return await z.array(ListSchema).parseAsync(result);
 };
 

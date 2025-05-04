@@ -20,7 +20,6 @@ export const ListSearchPage = (
   return (
     <BaseLayout loggedInUser={loggedInUser}>
       <div class="grid grid-cols-1 gap-4 w-full max-w-[1200px] mx-auto [&>*]:self-start px-4">
-        <div>
           <form
             hx-get="/lists/search"
             hx-swap="outerHTML"
@@ -62,7 +61,6 @@ export const ListSearchPage = (
             search={search}
             sort={sort as SortValue}
           />
-        </div>
       </div>
     </BaseLayout>
   );

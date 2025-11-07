@@ -17,6 +17,7 @@ import {
   PlusCircleIcon,
   RSSIcon,
 } from "./components/Icons.tsx";
+import { FeedBadge } from "./components/FeedBadge.tsx";
 import { Input, MaxLengthTextarea } from "./components/Input.tsx";
 import { UserBadge } from "./components/UserBadge.tsx";
 import { Badge } from "./components/Badge.tsx";
@@ -265,10 +266,13 @@ export function BlogList({
           {lb.title || new URL(lb.blog.site_url!).hostname}
         </Link>
         <p class="text-sm text-gray-600 mb-2">{lb.description}</p>
-        <Badge icon={<ClockIcon />} size="sm" className="mb-2">
-          {lb.blog.posts_last_month}{" "}
-          {lb.blog.posts_last_month === 1 ? "post" : "posts"} last month
-        </Badge>
+        <div class="flex gap-2 items-center mb-2">
+          <Badge icon={<ClockIcon />} size="sm">
+            {lb.blog.posts_last_month}{" "}
+            {lb.blog.posts_last_month === 1 ? "post" : "posts"} last month
+          </Badge>
+          <FeedBadge feedUrl={lb.blog.feed_url} />
+        </div>
       </div>
       {isOwner && (
         <div class="flex gap-2">

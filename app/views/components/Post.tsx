@@ -5,13 +5,17 @@ import { Card } from "./Card.tsx";
 import { BookmarkIcon, ClockIcon } from "./Icons.tsx";
 import { Link } from "./Link.tsx";
 import { ListNameAndAuthorBadge } from "./ListNameAndAuthorBadge.tsx";
+import { FeedBadge } from "./FeedBadge.tsx";
 
 const PostContent = ({ post }: { post: PostType }) => {
   if (!post.short_content) {
     return (
       <p class="text-gray-500">
         No post content available.{" "}
-        <Link href={post.url} target="_blank">View original post</Link>.
+        <Link href={post.url} target="_blank">
+          View original post
+        </Link>
+        .
       </p>
     );
   }
@@ -23,13 +27,14 @@ const PostContent = ({ post }: { post: PostType }) => {
   );
 };
 
-export const Post = (
-  { post, hasSubscription }: { post: PostType; hasSubscription?: boolean },
-) => (
-  <Card
-    id={`post-${post.id}`}
-    padding={false}
-  >
+export const Post = ({
+  post,
+  hasSubscription,
+}: {
+  post: PostType;
+  hasSubscription?: boolean;
+}) => (
+  <Card id={`post-${post.id}`} padding={false}>
     <article
       class="flex flex-col"
       // These are necessary because the Post's parent element (PostFeed) has
@@ -45,28 +50,35 @@ export const Post = (
             {post.title}
           </a>
         </h2>
-        <a
-          class="font-semibold mr-2 text-gray-600 hover:underline"
-          href={post.list_blog.blog.site_url || "#"}
-          target="_blank"
-        >
-          {post.list_blog.title}
-        </a>
-        <time
-          datetime={post.published_at.toISOString()}
-          class="text-gray-500 tracking-tight mr-2"
-        >
-          {post.published_at.toLocaleDateString("en-GB", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </time>
-        <Badge icon={<ClockIcon />} size="sm">
-          {post.list_blog.blog.posts_last_month}{" "}
-          {pluralize(post.list_blog.blog.posts_last_month ?? 0, "post")}{" "}
-          last month
-        </Badge>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-2">
+          <div className="flex items-center gap-2">
+            <a
+              class="font-semibold text-gray-600 hover:underline"
+              href={post.list_blog.blog.site_url || "#"}
+              target="_blank"
+            >
+              {post.list_blog.title}
+            </a>
+            <time
+              datetime={post.published_at.toISOString()}
+              class="text-gray-500 tracking-tight"
+            >
+              {post.published_at.toLocaleDateString("en-GB", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </time>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge icon={<ClockIcon />} size="sm">
+              {post.list_blog.blog.posts_last_month}{" "}
+              {pluralize(post.list_blog.blog.posts_last_month ?? 0, "post")}{" "}
+              last month
+            </Badge>
+            <FeedBadge feedUrl={post.list_blog.blog.feed_url} />
+          </div>
+        </div>
       </header>
       <main class="pb-2 px-4 border-b border-gray-200">
         <PostContent post={post} />
@@ -75,31 +87,30 @@ export const Post = (
         <div class="pl-4 py-3">
           <ListNameAndAuthorBadge list={post.list_blog.list} />
         </div>
-        {hasSubscription &&
-          (
-            <div class="border-l border-gray-200">
-              <button
-                type="button"
-                class={`flex text-gray w-full h-full items-center justify-center px-2 ${
-                  post.is_bookmarked
-                    ? "text-orange-400 bg-orange-50 hover:bg-orange-100"
-                    : "text-gray-300 hover:bg-gray-50 "
-                }`}
-                hx-post={!post.is_bookmarked
-                  ? `/posts/${post.id}/bookmark`
-                  : undefined}
-                hx-delete={post.is_bookmarked
-                  ? `/posts/${post.id}/bookmark`
-                  : undefined}
-                hx-swap="outerHTML"
-                hx-target={`#post-${post.id}`}
-              >
-                <div class="size-6">
-                  <BookmarkIcon />
-                </div>
-              </button>
-            </div>
-          )}
+        {hasSubscription && (
+          <div class="border-l border-gray-200">
+            <button
+              type="button"
+              class={`flex text-gray w-full h-full items-center justify-center px-2 ${
+                post.is_bookmarked
+                  ? "text-orange-400 bg-orange-50 hover:bg-orange-100"
+                  : "text-gray-300 hover:bg-gray-50 "
+              }`}
+              hx-post={
+                !post.is_bookmarked ? `/posts/${post.id}/bookmark` : undefined
+              }
+              hx-delete={
+                post.is_bookmarked ? `/posts/${post.id}/bookmark` : undefined
+              }
+              hx-swap="outerHTML"
+              hx-target={`#post-${post.id}`}
+            >
+              <div class="size-6">
+                <BookmarkIcon />
+              </div>
+            </button>
+          </div>
+        )}
       </footer>
     </article>
   </Card>

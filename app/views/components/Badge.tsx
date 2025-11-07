@@ -18,13 +18,14 @@ const colorToClasses = {
 };
 
 export const Badge = (
-  { children, size = "sm", icon, className, color = "grey" }: PropsWithChildren<
+  { children, size = "sm", icon, className, color = "grey", action }: PropsWithChildren<
     // deno-lint-ignore no-explicit-any
     {
       size?: "sm" | "md" | "lg";
       icon?: any;
       className?: string;
       color?: "grey" | "orange";
+      action?: any;
     }
   >,
 ) => (
@@ -41,5 +42,11 @@ export const Badge = (
     <span>
       {children}
     </span>
+    {action && (
+      <>
+        <div class="w-px h-4 bg-current opacity-20"></div>
+        {action}
+      </>
+    )}
   </span>
 );

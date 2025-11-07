@@ -6,17 +6,21 @@ interface TierLink {
   label: string;
 }
 
-export default function PricingGrid(
-  { freeTierLink, supporterTierLink }: {
-    freeTierLink?: TierLink;
-    supporterTierLink?: TierLink;
-  },
-) {
+export default function PricingGrid({
+  freeTierLink,
+  supporterTierLink,
+}: {
+  freeTierLink?: TierLink;
+  supporterTierLink?: TierLink;
+}) {
   return (
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="shadow-sharp rounded-lg bg-white overflow-hidden w-full flex flex-col">
+      <div class="shadow-sharp rounded-lg border border-stone-200 bg-white overflow-hidden w-full flex flex-col">
         <h3 class="text-xl text-center font-semibold text-orange-900 px-3 pt-3 pb-3 mb-3 border-b border-gray-200">
-          BlogFlock <Badge size="lg" color="orange">Free</Badge>
+          BlogFlock{" "}
+          <Badge size="lg" color="orange">
+            Free
+          </Badge>
         </h3>
         <div class="px-3 pb-3 flex flex-col h-full">
           <ul class="space-y-2 divide-y divide-gray-200 text-center text-balance mb-5">
@@ -25,14 +29,10 @@ export default function PricingGrid(
               <strong class="font-semibold text-orange-700">5 lists</strong>,
               with unlimited blogs in each
             </li>
-            <li>
-              Follow lists created by others
-            </li>
-            {
-              /* <li>
+            <li>Follow lists created by others</li>
+            {/* <li>
               View short blog post previews
-            </li> */
-            }
+            </li> */}
           </ul>
           {freeTierLink && (
             <div class="mt-auto">
@@ -43,36 +43,34 @@ export default function PricingGrid(
           )}
         </div>
       </div>
-      <div class="shadow-sharp rounded-lg bg-white overflow-hidden w-full flex flex-col">
+      <div class="shadow-sharp rounded-lg border border-stone-200 bg-white overflow-hidden w-full flex flex-col">
         <h3 class="text-xl text-center font-semibold text-orange-900 px-3 pt-3 pb-3 mb-3 border-b border-gray-200">
-          BlogFlock Supporter <Badge size="lg" color="orange">$20/year</Badge>
+          BlogFlock Supporter{" "}
+          <Badge size="lg" color="orange">
+            $20/year
+          </Badge>
         </h3>
         <div class="px-3 pb-3 flex flex-col h-full">
           <ul class="space-y-2 divide-y divide-gray-200 text-center text-balance mb-5">
             <li>
               Create{" "}
-              <strong class="font-semibold text-orange-700">unlimited</strong>
-              {" "}
+              <strong class="font-semibold text-orange-700">unlimited</strong>{" "}
               lists
             </li>
-            {
-              /* <li>
+            {/* <li>
               View{" "}
               <strong class="font-semibold text-orange-700">
                 full blog posts
               </strong>{" "}
               directly in BlogFlock
-            </li> */
-            }
+            </li> */}
             <li>
               <strong class="font-semibold text-orange-700">
                 Bookmark posts
               </strong>{" "}
               into your personal bookmarks list
             </li>
-            <li>
-              Support ongoing BlogFlock development!
-            </li>
+            <li>Support ongoing BlogFlock development!</li>
           </ul>
           {supporterTierLink && (
             <div class="mt-auto">

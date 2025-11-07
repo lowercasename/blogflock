@@ -17,31 +17,27 @@ const colorToClasses = {
   orange: "bg-orange-100 text-orange-700",
 };
 
-export const Badge = (
-  { children, size = "sm", icon, className, color = "grey", action }: PropsWithChildren<
-    // deno-lint-ignore no-explicit-any
-    {
-      size?: "sm" | "md" | "lg";
-      icon?: any;
-      className?: string;
-      color?: "grey" | "orange";
-      action?: any;
-    }
-  >,
-) => (
+export const Badge = ({
+  children,
+  size = "sm",
+  icon,
+  className,
+  color = "grey",
+  action,
+}: PropsWithChildren<{
+  size?: "sm" | "md" | "lg";
+  // deno-lint-ignore no-explicit-any
+  icon?: any;
+  className?: string;
+  color?: "grey" | "orange";
+  // deno-lint-ignore no-explicit-any
+  action?: any;
+}>) => (
   <span
-    class={`inline-flex items-center gap-1 rounded-full ${
-      colorToClasses[color]
-    } ${sizeToClasses[size]} ${className}`}
+    class={`inline-flex items-center gap-1 rounded-full ${colorToClasses[color]} ${sizeToClasses[size]} ${className}`}
   >
-    {icon && (
-      <div class={`${sizeToIconSize[size]}`}>
-        {icon}
-      </div>
-    )}
-    <span>
-      {children}
-    </span>
+    {icon && <div class={`${sizeToIconSize[size]}`}>{icon}</div>}
+    <span>{children}</span>
     {action && (
       <>
         <div class="w-px h-4 bg-current opacity-20"></div>

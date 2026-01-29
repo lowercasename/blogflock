@@ -36,38 +36,58 @@ const PostQueuePayloadSchema = z.object({
   guid: z.string(),
 });
 
-try {
-  const connection = await connect({
-    hostname: Deno.env.get("RABBITMQ_HOST") || "localhost",
-    username: Deno.env.get("RABBITMQ_USER") || "guest",
-    password: Deno.env.get("RABBITMQ_PASSWORD") || "guest",
-  });
-  const channel = await connection.openChannel();
-  await channel.declareQueue({
-    queue: "post_queue",
-    durable: true,
-  });
-  await channel.consume(
-    { queue: "post_queue" },
-    async (args, _props, data) => {
-      const response = PostQueuePayloadSchema.safeParse(
-        JSON.parse(new TextDecoder().decode(data)),
+async function consumePostQueue() {
+  const MAX_DELAY = 30_000;
+  let delay = 1_000;
+
+  while (true) {
+    try {
+      console.log("[AMQP] Connecting to RabbitMQ...");
+      const connection = await connect({
+        hostname: Deno.env.get("RABBITMQ_HOST") || "localhost",
+        username: Deno.env.get("RABBITMQ_USER") || "guest",
+        password: Deno.env.get("RABBITMQ_PASSWORD") || "guest",
+      });
+      const channel = await connection.openChannel();
+      await channel.declareQueue({
+        queue: "post_queue",
+        durable: true,
+      });
+
+      console.log("[AMQP] Connected, consuming post_queue");
+      delay = 1_000;
+
+      await channel.consume(
+        { queue: "post_queue" },
+        async (args, _props, data) => {
+          const response = PostQueuePayloadSchema.safeParse(
+            JSON.parse(new TextDecoder().decode(data)),
+          );
+          if (!response.success) {
+            console.error("[AMQP:post_queue] Invalid payload", response.error);
+            await channel.ack({ deliveryTag: args.deliveryTag });
+            return;
+          }
+          const body = response.data;
+          const lists = await getAllListsContainingBlog(body.blog_id);
+          broadcastNewPost(lists);
+          console.log(`[AMQP:post_queue] Post broadcast: ${body.title}`);
+          await channel.ack({ deliveryTag: args.deliveryTag });
+        },
       );
-      if (!response.success) {
-        console.error("[AMQP:post_queue] Invalid payload", response.error);
-        await channel.ack({ deliveryTag: args.deliveryTag });
-        return;
-      }
-      const body = response.data;
-      const lists = await getAllListsContainingBlog(body.blog_id);
-      broadcastNewPost(lists);
-      console.log(`[AMQP:post_queue] Post broadcast: ${body.title}`);
-      await channel.ack({ deliveryTag: args.deliveryTag });
-    },
-  );
-} catch (e) {
-  console.error("[AMPQ] Failed to connect to AMQP server", e);
+
+      await connection.closed();
+      console.warn("[AMQP] Connection closed, reconnecting...");
+    } catch (e) {
+      console.error(`[AMQP] Error: ${e}. Retrying in ${delay / 1000}s...`);
+    }
+
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 2, MAX_DELAY);
+  }
 }
+
+consumePostQueue();
 
 const app = new Hono();
 

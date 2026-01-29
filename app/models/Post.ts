@@ -4,22 +4,26 @@ import joinjs from "npm:join-js";
 import { createExcerpt, hash } from "../lib/text.ts";
 import { ListBlogWithRelationsSchema } from "./ListBlog.ts";
 
-export const PostSchema = z.object({
-  id: z.number(),
-  blog_id: z.number(),
-  title: z.string(),
-  content: z.string(),
-  url: z.string(),
-  published_at: z.coerce.date(),
-  created_at: z.coerce.date(),
-  guid: z.string(),
-  list_blog: ListBlogWithRelationsSchema,
-  is_bookmarked: z.boolean().optional(),
-}).transform((post) => ({
-  ...post,
-  title: post.title || `Post on ${post.list_blog.title}`,
-  short_content: createExcerpt(post.content, 50),
-}));
+export const PostSchema = z
+  .object({
+    id: z.number(),
+    blog_id: z.number(),
+    title: z.string(),
+    content: z.string(),
+    url: z.string(),
+    published_at: z.coerce.date(),
+    created_at: z.coerce.date(),
+    guid: z.string(),
+    list_blog: ListBlogWithRelationsSchema.nullable(),
+    is_bookmarked: z.boolean().optional(),
+  })
+  .transform((post) => ({
+    ...post,
+    title:
+      post.title ||
+      (post.list_blog ? `Post on ${post.list_blog.title}` : "Untitled Post"),
+    short_content: createExcerpt(post.content, 50),
+  }));
 
 export type PostObject = z.infer<typeof PostSchema>;
 export type Post = PostObject;
@@ -34,12 +38,18 @@ export type UpdatePost = Pick<
   "title" | "content" | "url" | "published_at" | "guid"
 >;
 
-export const generatePostGuid = async (
-  post: { guid?: string; url?: string; title: string; published_at: Date },
-): Promise<string> => {
+export const generatePostGuid = async (post: {
+  guid?: string;
+  url?: string;
+  title: string;
+  published_at: Date;
+}): Promise<string> => {
   // If there isn't a GUID, try the URL, and if that doesn't exist, hash the title and date
-  return post.guid || post.url ||
-    (await hash(post.title + post.published_at.getTime()));
+  return (
+    post.guid ||
+    post.url ||
+    (await hash(post.title + post.published_at.getTime()))
+  );
 };
 
 export const sanitizePostPublishedAt = (v?: string | Date | null): string => {
@@ -66,7 +76,7 @@ export const getPostById = async (id: number): Promise<Post | null> => {
 
 export const getPostByGuid = async (
   guid: string,
-  blogId: number,
+  blogId: number
 ): Promise<Post | null> => {
   return await queryOne<Post>`
         SELECT * FROM posts
@@ -115,10 +125,10 @@ const postQuery = (userId?: number) => `
         p.created_at as post_created_at,
         p.guid as post_guid,
         ${
-  userId
-    ? "(SELECT 1 FROM bookmarked_posts bp WHERE bp.post_id = p.id AND bp.user_id = $USER_ID) IS NOT NULL as post_is_bookmarked,"
-    : ""
-}
+          userId
+            ? "(SELECT 1 FROM bookmarked_posts bp WHERE bp.post_id = p.id AND bp.user_id = $USER_ID) IS NOT NULL as post_is_bookmarked,"
+            : ""
+        }
         lb.list_id as lb_list_id,
         lb.blog_id as lb_blog_id,
         lb.custom_title as lb_custom_title,
@@ -227,9 +237,7 @@ const buildPostsResponse = async (rows: unknown[]): Promise<Post[] | null> => {
         "is_private",
         "created_at",
       ],
-      associations: [
-        { name: "user", mapId: "userMap", columnPrefix: "user_" },
-      ],
+      associations: [{ name: "user", mapId: "userMap", columnPrefix: "user_" }],
     },
     {
       mapId: "userMap",
@@ -238,14 +246,24 @@ const buildPostsResponse = async (rows: unknown[]): Promise<Post[] | null> => {
     },
   ];
   const result = joinjs.default.map(rows, resultMaps, "postMap", "post_");
-  return await z.array(PostSchema).parseAsync(result);
+  // Clean up posts where list_blog has null IDs (from LEFT JOIN with no match)
+  const cleanedResult = result.map((post: any) => ({
+    ...post,
+    list_blog:
+      post.list_blog?.list_id === null || post.list_blog?.blog_id === null
+        ? null
+        : post.list_blog,
+  }));
+  return await z.array(PostSchema).parseAsync(cleanedResult);
 };
 
 export const getPostWithAssociationsById = async (
   id: number,
-  userId?: number,
+  userId?: number
 ): Promise<Post | null> => {
-  const queryText = postQuery(userId) + `
+  const queryText =
+    postQuery(userId) +
+    `
     WHERE p.id = $ID`;
   const { rows } = await db.queryObject(queryText, { id, user_id: userId });
   const posts = await buildPostsResponse(rows);
@@ -257,27 +275,30 @@ export const getPostsForListsIds = async (
   limit: number,
   offset: number,
   maxPostsPerMonth: number | null = null,
-  userId?: number,
+  userId?: number
 ): Promise<[Post[], boolean]> => {
-  const queryText = postQuery(userId) + `
+  const queryText =
+    postQuery(userId) +
+    `
     WHERE lb.list_id = ANY($LIST_IDS)
     ${
-    maxPostsPerMonth === null
-      ? ""
-      : "AND b.posts_last_month <= $MAX_POSTS_PER_MONTH"
-  }
+      maxPostsPerMonth === null
+        ? ""
+        : "AND b.posts_last_month <= $MAX_POSTS_PER_MONTH"
+    }
     ORDER BY p.published_at DESC
     LIMIT $LIMIT OFFSET $OFFSET`;
 
-  const params = maxPostsPerMonth === null
-    ? { list_ids: listIds, limit: limit + 1, offset, user_id: userId }
-    : {
-      list_ids: listIds,
-      limit: limit + 1,
-      offset,
-      max_posts_per_month: maxPostsPerMonth,
-      user_id: userId,
-    };
+  const params =
+    maxPostsPerMonth === null
+      ? { list_ids: listIds, limit: limit + 1, offset, user_id: userId }
+      : {
+          list_ids: listIds,
+          limit: limit + 1,
+          offset,
+          max_posts_per_month: maxPostsPerMonth,
+          user_id: userId,
+        };
 
   const { rows } = await db.queryObject(queryText, params);
   const posts = await buildPostsResponse(rows);
@@ -295,26 +316,29 @@ export const getPostsForFollowedListsByUserId = async (
   userId: number,
   limit: number,
   offset: number,
-  maxPostsPerMonth: number | null = null,
+  maxPostsPerMonth: number | null = null
 ): Promise<[Post[], boolean]> => {
-  const queryText = postQuery(userId) + `
+  const queryText =
+    postQuery(userId) +
+    `
     JOIN list_followers lf ON lb.list_id = lf.list_id
     WHERE lf.user_id = $USER_ID
     ${
-    maxPostsPerMonth === null
-      ? ""
-      : "AND b.posts_last_month <= $MAX_POSTS_PER_MONTH"
-  }
+      maxPostsPerMonth === null
+        ? ""
+        : "AND b.posts_last_month <= $MAX_POSTS_PER_MONTH"
+    }
     ORDER BY p.published_at DESC
     LIMIT $LIMIT OFFSET $OFFSET`;
-  const params = maxPostsPerMonth === null
-    ? { user_id: userId, limit: limit + 1, offset }
-    : {
-      user_id: userId,
-      limit: limit + 1,
-      offset,
-      max_posts_per_month: maxPostsPerMonth,
-    };
+  const params =
+    maxPostsPerMonth === null
+      ? { user_id: userId, limit: limit + 1, offset }
+      : {
+          user_id: userId,
+          limit: limit + 1,
+          offset,
+          max_posts_per_month: maxPostsPerMonth,
+        };
 
   const { rows } = await db.queryObject(queryText, params);
   const posts = await buildPostsResponse(rows);
@@ -332,26 +356,29 @@ export const getBookmarkedPostsByUserId = async (
   userId: number,
   limit: number,
   offset: number,
-  maxPostsPerMonth: number | null = null,
+  maxPostsPerMonth: number | null = null
 ): Promise<[Post[], boolean]> => {
-  const queryText = postQuery(userId) + `
+  const queryText =
+    postQuery(userId) +
+    `
     JOIN bookmarked_posts bp ON p.id = bp.post_id
     WHERE bp.user_id = $USER_ID
     ${
-    maxPostsPerMonth === null
-      ? ""
-      : "AND b.posts_last_month <= $MAX_POSTS_PER_MONTH"
-  }
+      maxPostsPerMonth === null
+        ? ""
+        : "AND b.posts_last_month <= $MAX_POSTS_PER_MONTH"
+    }
     ORDER BY p.published_at DESC
     LIMIT $LIMIT OFFSET $OFFSET`;
-  const params = maxPostsPerMonth === null
-    ? { user_id: userId, limit: limit + 1, offset }
-    : {
-      user_id: userId,
-      limit: limit + 1,
-      offset,
-      max_posts_per_month: maxPostsPerMonth,
-    };
+  const params =
+    maxPostsPerMonth === null
+      ? { user_id: userId, limit: limit + 1, offset }
+      : {
+          user_id: userId,
+          limit: limit + 1,
+          offset,
+          max_posts_per_month: maxPostsPerMonth,
+        };
 
   const { rows } = await db.queryObject(queryText, params);
   const posts = await buildPostsResponse(rows);

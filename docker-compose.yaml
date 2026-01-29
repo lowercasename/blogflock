@@ -16,9 +16,9 @@ services:
       replicas: 2
       resources:
         limits:
-          memory: 256M
+          memory: 512M
         reservations:
-          memory: 128M
+          memory: 256M
 
   caddy:
     container_name: blogflock-caddy
@@ -96,12 +96,12 @@ services:
         condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
       interval: 10s
       timeout: 5s
       retries: 5
     ports:
-      - "8080:8080"
+      - "8088:8080"
 
   rabbitmq:
     container_name: blogflock-rabbitmq

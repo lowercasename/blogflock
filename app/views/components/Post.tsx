@@ -52,13 +52,15 @@ export const Post = ({
         </h2>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between w-full gap-2">
           <div className="flex items-center gap-2">
-            <a
-              class="font-semibold text-gray-600 hover:underline"
-              href={post.list_blog.blog.site_url || "#"}
-              target="_blank"
-            >
-              {post.list_blog.title}
-            </a>
+            {post.list_blog && (
+              <a
+                class="font-semibold text-gray-600 hover:underline"
+                href={post.list_blog.blog.site_url || "#"}
+                target="_blank"
+              >
+                {post.list_blog.title}
+              </a>
+            )}
             <time
               datetime={post.published_at.toISOString()}
               class="text-gray-500 tracking-tight"
@@ -70,14 +72,16 @@ export const Post = ({
               })}
             </time>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge icon={<ClockIcon />} size="sm">
-              {post.list_blog.blog.posts_last_month}{" "}
-              {pluralize(post.list_blog.blog.posts_last_month ?? 0, "post")}{" "}
-              last month
-            </Badge>
-            <FeedBadge feedUrl={post.list_blog.blog.feed_url} />
-          </div>
+          {post.list_blog && (
+            <div className="flex items-center gap-2">
+              <Badge icon={<ClockIcon />} size="sm">
+                {post.list_blog.blog.posts_last_month}{" "}
+                {pluralize(post.list_blog.blog.posts_last_month ?? 0, "post")}{" "}
+                last month
+              </Badge>
+              <FeedBadge feedUrl={post.list_blog.blog.feed_url} />
+            </div>
+          )}
         </div>
       </header>
       <main class="pb-2 px-4 border-b border-gray-200">
@@ -85,7 +89,7 @@ export const Post = ({
       </main>
       <footer class="grid grid-cols-[1fr_auto] gap-2">
         <div class="pl-4 py-3">
-          <ListNameAndAuthorBadge list={post.list_blog.list} />
+          {post.list_blog && <ListNameAndAuthorBadge list={post.list_blog.list} />}
         </div>
         {hasSubscription && (
           <div class="border-l border-gray-200">

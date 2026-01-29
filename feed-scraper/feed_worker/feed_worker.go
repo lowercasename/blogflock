@@ -388,13 +388,15 @@ func main() {
 						}
 					}
 
-					feedItemsPublishedAfterLastFetchedAt := make([]*gofeed.Item, 0)
+					newItems := make([]*gofeed.Item, 0)
 					feedHasNeverBeenFetched := !feedData.LastFetchedAt.Valid || feedData.LastFetchedAt.String == ""
-					var feedLastFetchedAtParsed time.Time
-					if !feedHasNeverBeenFetched {
-						feedLastFetchedAtParsed, err = time.Parse(time.RFC3339, feedData.LastFetchedAt.String)
-						failOnError(err, "Failed to parse last fetched at")
+					hasLastPublishedAt := feedData.LastPublishedAt.Valid && feedData.LastPublishedAt.String != ""
+					var lastPublishedAtParsed time.Time
+					if hasLastPublishedAt {
+						lastPublishedAtParsed, err = time.Parse(time.RFC3339, feedData.LastPublishedAt.String)
+						failOnError(err, "Failed to parse last published at")
 					}
+
 					if len(feed.Items) == 0 {
 						log.Printf("No items to process")
 						d.Ack(false)
@@ -402,13 +404,13 @@ func main() {
 					}
 					for _, item := range feed.Items {
 						publishedAt := getPublishedAt(item)
-						if feedHasNeverBeenFetched || publishedAt.After(feedLastFetchedAtParsed) {
-							feedItemsPublishedAfterLastFetchedAt = append(feedItemsPublishedAfterLastFetchedAt, item)
+						if feedHasNeverBeenFetched || !hasLastPublishedAt || publishedAt.After(lastPublishedAtParsed) {
+							newItems = append(newItems, item)
 						}
 					}
 
 					savedPostsCount := 0
-					for _, item := range feedItemsPublishedAfterLastFetchedAt {
+					for _, item := range newItems {
 						contentOrDescription := item.Content
 						if contentOrDescription == "" {
 							contentOrDescription = item.Description
@@ -475,13 +477,13 @@ func main() {
 					}
 
 					metrics.ProcessedFeedsCount.Add(1)
-					metrics.ProcessedPostsCount.Add(int64(len(feedItemsPublishedAfterLastFetchedAt)))
+					metrics.ProcessedPostsCount.Add(int64(len(newItems)))
 					metrics.LastSuccessfulRun.Store(time.Now())
 					metrics.IsHealthy.Store(true)
 
 					log.Printf("Processed feed %s: %d new posts found, %d posts saved",
 						feed.Title,
-						len(feedItemsPublishedAfterLastFetchedAt),
+						len(newItems),
 						savedPostsCount)
 
 					d.Ack(false)

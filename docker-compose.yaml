@@ -12,6 +12,11 @@ services:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8021/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     deploy:
       replicas: 2
       resources:

@@ -91,6 +91,8 @@ consumePostQueue();
 
 const app = new Hono();
 
+app.get("/health", (c) => c.json({ status: "ok" }));
+
 app.use("/static/*", serveStatic({ root: "./" }));
 
 app.route("/auth", auth);

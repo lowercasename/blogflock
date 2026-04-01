@@ -1,6 +1,9 @@
 :80 {
     reverse_proxy app:8021 {
       lb_policy round_robin
+      health_uri /health
+      health_interval 10s
+      health_timeout 5s
     }
 
     # Health check endpoint

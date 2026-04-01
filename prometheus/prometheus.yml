@@ -12,6 +12,15 @@ rule_files:
   - rules/*.yml
 
 scrape_configs:
+  - job_name: 'app'
+    metrics_path: /health
+    scrape_interval: 10s
+    dns_sd_configs:
+      - names:
+          - app
+        type: A
+        port: 8021
+
   - job_name: 'feed-sender'
     static_configs:
       - targets: ['feed-sender:8080']

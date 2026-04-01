@@ -299,7 +299,6 @@ func main() {
 					defer func() {
 						if r := recover(); r != nil {
 							metrics.ErrorCount.Add(1)
-							metrics.IsHealthy.Store(false)
 							log.Printf("Recovered from panic: %v", r)
 						}
 					}()
@@ -309,7 +308,6 @@ func main() {
 					err := json.Unmarshal(d.Body, &feedData)
 					if err != nil {
 						metrics.ErrorCount.Add(1)
-						metrics.IsHealthy.Store(false)
 						log.Printf("Failed to unmarshal feed data: %v", err)
 						d.Ack(false)
 						return
@@ -321,7 +319,6 @@ func main() {
 					req, err := http.NewRequest("GET", trimmedUrl, nil)
 					if err != nil {
 						metrics.ErrorCount.Add(1)
-						metrics.IsHealthy.Store(false)
 						log.Printf("Failed to create request for feed %s: %v", trimmedUrl, err)
 						d.Ack(false)
 						return
@@ -331,7 +328,6 @@ func main() {
 						lastModifiedAt, err := time.Parse(time.RFC3339, feedData.LastModifiedAt.String)
 						if err != nil {
 							metrics.ErrorCount.Add(1)
-							metrics.IsHealthy.Store(false)
 							log.Printf("Failed to parse last modified date: %v", err)
 							d.Ack(false)
 							return
@@ -346,7 +342,6 @@ func main() {
 					resp, err := client.Do(req)
 					if err != nil {
 						metrics.ErrorCount.Add(1)
-						metrics.IsHealthy.Store(false)
 						log.Printf("Failed to fetch feed %s: %v", trimmedUrl, err)
 						d.Ack(false)
 						return
@@ -360,7 +355,6 @@ func main() {
 						return
 					} else if resp.StatusCode != http.StatusOK {
 						metrics.ErrorCount.Add(1)
-						metrics.IsHealthy.Store(false)
 						log.Printf("Failed to fetch feed %s: %s", trimmedUrl, resp.Status)
 						d.Ack(false)
 						return
@@ -370,8 +364,7 @@ func main() {
 					feed, err := fp.Parse(resp.Body)
 					if err != nil || feed == nil {
 						metrics.ErrorCount.Add(1)
-						metrics.IsHealthy.Store(false)
-						log.Printf("Failed to fetch feed %s: %v", trimmedUrl, err)
+						log.Printf("Failed to parse feed %s: %v", trimmedUrl, err)
 						d.Ack(false)
 						return
 					}
@@ -394,7 +387,12 @@ func main() {
 					var lastPublishedAtParsed time.Time
 					if hasLastPublishedAt {
 						lastPublishedAtParsed, err = time.Parse(time.RFC3339, feedData.LastPublishedAt.String)
-						failOnError(err, "Failed to parse last published at")
+						if err != nil {
+							metrics.ErrorCount.Add(1)
+							log.Printf("Failed to parse last published at for blog %d: %v", feedData.ID, err)
+							d.Ack(false)
+							return
+						}
 					}
 
 					if len(feed.Items) == 0 {
@@ -454,7 +452,11 @@ func main() {
 
 						// Send the post data to the post_queue for WebSockets updates
 						postJson, err := json.Marshal(post)
-						failOnError(err, "Failed to marshal post data")
+						if err != nil {
+							metrics.ErrorCount.Add(1)
+							log.Printf("Failed to marshal post data: %v", err)
+							continue
+						}
 						err = ch.Publish(
 							"",             // exchange
 							postQueue.Name, // routing key
@@ -465,7 +467,11 @@ func main() {
 								ContentType:  "text/plain",
 								Body:         []byte(postJson),
 							})
-						failOnError(err, "Failed to publish a message")
+						if err != nil {
+							metrics.ErrorCount.Add(1)
+							log.Printf("Failed to publish message to post queue: %v", err)
+							continue
+						}
 						log.Printf(" [x] Sent %s", item.Title)
 						savedPostsCount++
 					}
@@ -479,7 +485,6 @@ func main() {
 					metrics.ProcessedFeedsCount.Add(1)
 					metrics.ProcessedPostsCount.Add(int64(len(newItems)))
 					metrics.LastSuccessfulRun.Store(time.Now())
-					metrics.IsHealthy.Store(true)
 
 					log.Printf("Processed feed %s: %d new posts found, %d posts saved",
 						feed.Title,

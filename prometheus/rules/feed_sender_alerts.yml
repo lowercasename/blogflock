@@ -21,6 +21,15 @@ groups:
           summary: "Feed Sender not updating"
           description: "Feed Sender hasn't successfully run in the last 30 minutes"
 
+      - alert: FeedSenderDatabaseDown
+        expr: feed_sender_db_connected == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Feed Sender lost database connection"
+          description: "Feed Sender has been unable to connect to the database for more than 5 minutes"
+
   - name: feed_worker
     rules:
       - alert: FeedWorkerUnhealthy
@@ -50,6 +59,24 @@ groups:
           summary: "Feed Worker experiencing high error rate"
           description: "Feed Worker instance {{ $labels.instance }} has been experiencing a high error rate in the last 5 minutes"
 
+      - alert: FeedWorkerRabbitMQDown
+        expr: feed_worker_rabbitmq_connected == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Feed Worker lost RabbitMQ connection"
+          description: "Feed Worker instance {{ $labels.instance }} has been unable to connect to RabbitMQ for more than 5 minutes"
+
+      - alert: FeedWorkerDatabaseDown
+        expr: feed_worker_db_connected == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Feed Worker lost database connection"
+          description: "Feed Worker instance {{ $labels.instance }} has been unable to connect to the database for more than 5 minutes"
+
       - alert: AllFeedWorkersHighErrorRate
         expr: sum(rate(feed_worker_errors_total[5m])) / count(rate(feed_worker_errors_total[5m])) > 0.1
         for: 5m
@@ -58,15 +85,6 @@ groups:
         annotations:
           summary: "All Feed Workers experiencing high error rate"
           description: "All Feed Worker instances have been experiencing a high average error rate in the last 5 minutes"
-
-      - alert: FeedWorkerStalled
-        expr: rate(feed_worker_processed_feeds_total[2h]) == 0
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Feed Worker not processing feeds"
-          description: "Feed Worker instance {{ $labels.instance }} hasn't processed any feeds in the last 2 hours"
 
       - alert: AllFeedWorkersStalled
         expr: sum(rate(feed_worker_processed_feeds_total[2h])) == 0

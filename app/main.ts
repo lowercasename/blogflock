@@ -91,7 +91,15 @@ consumePostQueue();
 
 const app = new Hono();
 
-app.get("/health", (c) => c.json({ status: "ok" }));
+app.get("/health", (c) => {
+  const accept = c.req.header("Accept") || "";
+  if (accept.includes("application/openmetrics-text") || accept.includes("text/plain")) {
+    return c.text("# HELP app_healthy Whether the app is healthy\n# TYPE app_healthy gauge\napp_healthy 1\n# EOF\n", 200, {
+      "Content-Type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
+    });
+  }
+  return c.json({ status: "ok" });
+});
 
 app.use("/static/*", serveStatic({ root: "./" }));
 

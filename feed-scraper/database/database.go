@@ -71,6 +71,10 @@ func InitDB() (*DB, error) {
 	return &DB{Conn: db}, nil
 }
 
+func (db *DB) Ping() error {
+	return db.Conn.Ping()
+}
+
 func (db *DB) GetPostByGuid(guid string, blogId int) (bool, error) {
 	var count int
 	err := db.Conn.QueryRow("SELECT COUNT(*) FROM posts WHERE guid = $1 AND blog_id = $2", guid, blogId).Scan(&count)

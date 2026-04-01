@@ -240,6 +240,19 @@ func main() {
 		}
 	}()
 
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := db.Ping(); err != nil {
+				log.Printf("Database ping failed: %v", err)
+				metrics.DbConnected.Store(false)
+			} else {
+				metrics.DbConnected.Store(true)
+			}
+		}
+	}()
+
 	fp := gofeed.NewParser()
 
 	for {

@@ -13,7 +13,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8021/health"]
+      test: ["CMD", "deno", "eval", "const r = await fetch('http://localhost:8021/health'); if (!r.ok) Deno.exit(1);"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -72,7 +72,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -101,7 +101,7 @@ services:
         condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8088/health"]
       interval: 10s
       timeout: 5s
       retries: 5

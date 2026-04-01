@@ -53,14 +53,15 @@ func processFeedQueue(ctx context.Context, ch *amqp.Channel, feedQueue amqp.Queu
 	if err != nil {
 		log.Printf("Failed to get blogs: %v", err)
 		metrics.IsHealthy.Store(false)
+		return err
 	}
 	log.Printf("Fetched %d blogs", len(blogs))
 
 	for _, blog := range blogs {
 		feedJson, err := json.Marshal(blog)
 		if err != nil {
-			metrics.IsHealthy.Store(false)
-			return err
+			log.Printf("Failed to marshal blog %d: %v", blog.ID, err)
+			continue
 		}
 
 		feedHasNeverBeenFetched := !blog.LastFetchedAt.Valid || blog.LastFetchedAt.String == ""
@@ -68,8 +69,8 @@ func processFeedQueue(ctx context.Context, ch *amqp.Channel, feedQueue amqp.Queu
 		if !feedHasNeverBeenFetched {
 			timeLastFetched, err = time.Parse(time.RFC3339, blog.LastFetchedAt.String)
 			if err != nil {
-				metrics.IsHealthy.Store(false)
-				return err
+				log.Printf("Failed to parse last fetched at for blog %d: %v", blog.ID, err)
+				continue
 			}
 		}
 
@@ -161,6 +162,25 @@ func main() {
 		http.HandleFunc("/health", healthHandler)
 		if err := http.ListenAndServe(":8080", nil); err != nil {
 			log.Printf("Health check server error: %v", err)
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			db, err := database.InitDB()
+			if err != nil {
+				log.Printf("Database ping failed: %v", err)
+				metrics.DbConnected.Store(false)
+				continue
+			}
+			if err := db.Ping(); err != nil {
+				log.Printf("Database ping failed: %v", err)
+				metrics.DbConnected.Store(false)
+			} else {
+				metrics.DbConnected.Store(true)
+			}
 		}
 	}()
 

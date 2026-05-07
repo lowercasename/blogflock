@@ -28,6 +28,11 @@ export const validateRequest = <T extends z.ZodType>(
           setFlash(c, zodSafeParseErrorToFlash(c, parseResult));
           return c.redirect(options.redirectTo);
         } else {
+          // Set formData to the raw (invalid) input so handlers don't crash
+          // on `data.<field>` accesses. Handlers should check `c.get("flash")`
+          // for errors and re-render the form before doing anything
+          // destructive (see /login in routes/auth.ts for the pattern).
+          c.set("formData", (data ?? {}) as Record<string, string>);
           c.set("flash", zodSafeParseErrorToFlash(c, parseResult));
           return await next();
         }
@@ -44,6 +49,7 @@ export const validateRequest = <T extends z.ZodType>(
         });
         return c.redirect(options.redirectTo);
       } else {
+        c.set("formData", {} as Record<string, string>);
         c.set("flash", [{
           message: "An unexpected error occurred. Please try again.",
           type: "error",

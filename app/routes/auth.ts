@@ -77,6 +77,17 @@ app.post(
   }),
   async (c: Context) => {
     const data = c.get("formData");
+    const validationErrors = c.get("flash");
+
+    if (validationErrors) {
+      return c.html(
+        AuthFormLayout({
+          title: "Register",
+          children: RegisterForm(),
+          messages: validationErrors,
+        }),
+      );
+    }
 
     try {
       const emailValid = await emailIsAvailable(data.email);
@@ -223,6 +234,15 @@ app.post(
   }),
   async (c: Context) => {
     const data = c.get("formData");
+    const validationErrors = c.get("flash");
+
+    if (validationErrors) {
+      return c.html(AuthFormLayout({
+        title: "Verify Email",
+        children: VerifyEmailForm(),
+        messages: validationErrors,
+      }));
+    }
 
     const user = await verifyEmailToken(data.token);
     if (!user) {
@@ -256,6 +276,15 @@ app.post(
   }),
   async (c: Context) => {
     const data = c.get("formData");
+    const validationErrors = c.get("flash");
+
+    if (validationErrors) {
+      return c.html(AuthFormLayout({
+        title: "Verify Email",
+        children: VerifyEmailForm(),
+        messages: validationErrors,
+      }));
+    }
 
     const emailVerificationToken = generateOTP();
     const user = await resetEmailVerificationToken(
@@ -302,6 +331,15 @@ app.post(
   }),
   async (c: Context) => {
     const data = c.get("formData");
+    const validationErrors = c.get("flash");
+
+    if (validationErrors) {
+      return c.html(AuthFormLayout({
+        title: "Forgot Password",
+        children: ForgotPasswordForm(),
+        messages: validationErrors,
+      }));
+    }
 
     const token = crypto.randomUUID();
     const user = await setForgotPasswordToken(data.email, token);
@@ -346,6 +384,15 @@ app.post(
   }),
   async (c: Context) => {
     const data = c.get("formData");
+    const validationErrors = c.get("flash");
+
+    if (validationErrors) {
+      return c.html(AuthFormLayout({
+        title: "Reset Password",
+        children: ResetPasswordForm({ token: data.token ?? "" }),
+        messages: validationErrors,
+      }));
+    }
 
     const user = await resetPassword(data.token, data.password);
     if (!user) {

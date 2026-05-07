@@ -245,7 +245,13 @@ const buildPostsResponse = async (rows: unknown[]): Promise<Post[] | null> => {
       properties: ["id", "hash_id", "username", "avatar_url", "bio"],
     },
   ];
-  const result = joinjs.default.map(rows, resultMaps, "postMap", "post_");
+  // deno-lint-ignore no-explicit-any
+  const result = (joinjs as any).default.map(
+    rows,
+    resultMaps,
+    "postMap",
+    "post_",
+  );
   // Clean up posts where list_blog has null IDs (from LEFT JOIN with no match)
   const cleanedResult = result.map((post: any) => ({
     ...post,

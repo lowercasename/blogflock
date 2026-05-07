@@ -152,11 +152,24 @@ const md = markdownit({
 });
 
 // Add target="_blank" to all links
+// deno-lint-ignore no-explicit-any
 const defaultRender = md.renderer.rules.link_open ||
-  function (tokens, idx, options, env, self) {
+  // deno-lint-ignore no-explicit-any
+  function (tokens: any, idx: any, options: any, env: any, self: any) {
     return self.renderToken(tokens, idx, options);
   };
-md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+md.renderer.rules.link_open = function (
+  // deno-lint-ignore no-explicit-any
+  tokens: any,
+  // deno-lint-ignore no-explicit-any
+  idx: any,
+  // deno-lint-ignore no-explicit-any
+  options: any,
+  // deno-lint-ignore no-explicit-any
+  env: any,
+  // deno-lint-ignore no-explicit-any
+  self: any,
+) {
   // Add a new `target` attribute, or replace the value of the existing one.
   tokens[idx].attrSet("target", "_blank");
 

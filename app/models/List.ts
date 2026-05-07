@@ -160,7 +160,13 @@ const buildListsResponse = async (rows: unknown[]): Promise<List[] | null> => {
       properties: ["username", "id", "avatar_url", "bio", "hash_id"],
     },
   ];
-  const result = joinjs.default.map(rows, resultMaps, "listMap", "list_");
+  // deno-lint-ignore no-explicit-any
+  const result = (joinjs as any).default.map(
+    rows,
+    resultMaps,
+    "listMap",
+    "list_",
+  );
   return await z.array(ListSchema).parseAsync(result);
 };
 
@@ -354,8 +360,9 @@ export const listToAtomFeed = async (list: List): Promise<string> => {
   // Retrieve the 20 most recent posts from the list
   const [posts] = await getPostsForListsIds([list.id], 20, 0);
   posts.forEach((post) => {
+    const blogTitle = post.list_blog?.title ?? "";
     atomFeed.addItem({
-      title: `${post.title} - ${post.list_blog.title}`,
+      title: `${post.title} - ${blogTitle}`,
       link: post.url,
       id: post.guid,
       updated: post.published_at,

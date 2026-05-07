@@ -1,5 +1,4 @@
-import { PropsWithChildren } from "hono/jsx";
-import { JSX } from "https://jsr.io/@hono/hono/4.6.10/src/jsx/base.ts";
+import { Child, PropsWithChildren } from "hono/jsx";
 
 export function Input({ ...props }: { [key: string]: unknown }) {
   return (
@@ -13,7 +12,7 @@ export function Input({ ...props }: { [key: string]: unknown }) {
 export function Select(
   { options, icon, value, ...props }: {
     options: { value: string; text: string }[];
-    icon: JSX.Element;
+    icon: Child;
     value: string;
     [key: string]: unknown;
   },

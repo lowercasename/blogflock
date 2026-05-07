@@ -1,4 +1,4 @@
-import { PropsWithChildren } from "https://jsr.io/@hono/hono/4.6.10/src/jsx/types.ts";
+import { PropsWithChildren } from "hono/jsx";
 
 interface Props {
   title?: unknown;

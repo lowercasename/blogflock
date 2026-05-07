@@ -9,13 +9,6 @@ services:
       - ./app:/app
       - ./db:/db
     restart: unless-stopped
-    # Disable IPv6 inside the container's network namespace. Several feeds
-    # (e.g. exakat.io) advertise AAAA records that don't route from this
-    # host, causing the resolver to try IPv6 first and hang until the fetch
-    # timeout fires. With v6 off the resolver only ever uses A records.
-    sysctls:
-      - net.ipv6.conf.all.disable_ipv6=1
-      - net.ipv6.conf.default.disable_ipv6=1
     healthcheck:
       test: ["CMD", "deno", "eval", "const r = await fetch('http://localhost:8021/health'); if (!r.ok) Deno.exit(1);"]
       interval: 10s

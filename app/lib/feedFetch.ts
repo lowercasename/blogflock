@@ -12,7 +12,7 @@ import {
 import { getAllListsContainingBlog } from "../models/List.ts";
 import { broadcastNewPost } from "./websockets.ts";
 
-const FETCH_TIMEOUT_MS = 10_000;
+const FETCH_TIMEOUT_MS = 30_000;
 
 export interface FetchResult {
   newPosts: number;

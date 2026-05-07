@@ -11,7 +11,9 @@
     "start": "deno run -A --env-file main.ts",
     "dev:hono": "deno run -A --env-file --unstable --watch main.ts",
     "dev:tailwind": "deno run -A npm:tailwindcss -i ./style.css -o ./static/style.css --watch",
-    "dev": "deno task dev:hono & deno task dev:tailwind"
+    "dev": "deno task dev:hono & deno task dev:tailwind",
+    "test:integration": "bash test/run.sh",
+    "check": "deno check main.ts"
   },
   "compilerOptions": {
     "jsx": "precompile",

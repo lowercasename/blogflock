@@ -52,6 +52,10 @@ cd "$APP_DIR"
 # `published_at` column is `timestamp without time zone`. Running the deno
 # process under TZ=UTC ensures roundtrip equality on date comparisons.
 export TZ=UTC
+# Sentinel that test/setup.ts requires before it will load. Without this,
+# the harness throws at import time — so accidentally running `deno test`
+# directly with the prod .env can't TRUNCATE production.
+export BLOGFLOCK_TEST_MODE=1
 export POSTGRES_USER=test
 export POSTGRES_PASSWORD=test
 export POSTGRES_DB=blogflock_test

@@ -5,6 +5,11 @@
 // (test/run.sh) must have a postgres up and the schema loaded BEFORE
 // `deno test` runs.
 
+// SAFETY: must be the very first import — runs the BLOGFLOCK_TEST_MODE
+// + POSTGRES_DB-name guards before any code that touches lib/db.ts can
+// load (db.ts has a top-level await connect()).
+import "./_guard.ts";
+
 // IMPORTANT: side-effect import to force List.ts to evaluate before
 // feedFetch.ts pulls in Post.ts → ListBlog.ts. The Blog/List/ListBlog
 // triangle has a TDZ-sensitive cycle that resolves cleanly when entered

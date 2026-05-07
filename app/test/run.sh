@@ -29,9 +29,13 @@ docker run -d --rm \
   -p "$PORT:5432" \
   postgres:17-alpine >/dev/null
 
-echo "==> Waiting for postgres to be ready"
+echo "==> Waiting for postgres + target database to be ready"
+# pg_isready returns success as soon as the server accepts connections,
+# which happens before POSTGRES_DB is created. Run an actual query against
+# the target db so we don't race the schema apply.
 for _ in $(seq 1 60); do
-  if docker exec "$CONTAINER" pg_isready -U test -d blogflock_test >/dev/null 2>&1; then
+  if docker exec "$CONTAINER" \
+    psql -U test -d blogflock_test -c 'SELECT 1' >/dev/null 2>&1; then
     break
   fi
   sleep 0.5

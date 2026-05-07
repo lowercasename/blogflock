@@ -72,7 +72,12 @@ export const fetchAndIngestBlog = async (
   }
 
   if (res.status === 304) {
-    await updateBlogStats(blog.id).catch(() => {});
+    // Match the success path's logging — silently swallowing here means a
+    // failed updateBlogStats (e.g. last_fetched_at not advancing) would
+    // re-fetch this feed every tick forever with no visible signal.
+    await updateBlogStats(blog.id).catch((e) =>
+      console.error(`[feed] updateBlogStats failed for 304 ${blog.feed_url}: ${e}`)
+    );
     return { newPosts: 0, notModified: true, skipped: false };
   }
   if (!res.ok) {
@@ -165,8 +170,17 @@ export const fetchAndIngestBlog = async (
       });
       if (created) newPosts++;
     } catch (e) {
-      // UNIQUE (blog_id, guid) constraint races are expected and harmless.
-      console.error(`[feed] createPost failed for ${blog.feed_url}: ${e}`);
+      // Postgres SQLSTATE 23505 = unique_violation. The (blog_id, guid)
+      // unique index can race when the same feed is fetched by two ticks
+      // overlapping; that's expected and harmless. Anything else (NOT NULL
+      // violation, FK violation, connection drop, statement timeout) is a
+      // real bug — surface it to the poller's worker catch.
+      // deno-lint-ignore no-explicit-any
+      const code = (e as any)?.fields?.code;
+      if (code === "23505") {
+        continue;
+      }
+      throw e;
     }
   }
 

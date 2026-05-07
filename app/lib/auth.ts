@@ -85,17 +85,3 @@ export const getAuthenticatedUser = async (c: Context) => {
   }
 };
 
-export const tokenAuthMiddleware = async (c: Context, next: Next) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-  if (!authHeader.startsWith("Bearer ")) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-  const token = authHeader.split(" ")[1];
-  if (token !== Deno.env.get("API_TOKEN")) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-  await next();
-};

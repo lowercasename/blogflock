@@ -4,7 +4,13 @@ import { parseFeed } from "https://deno.land/x/rss@1.1.1/mod.ts";
 import feedFinder from "npm:feed-finder";
 import { encode } from "../lib/hashids.ts";
 import { sanitizeUrl } from "../lib/url.ts";
-import { connect } from "https://deno.land/x/amqp@v0.24.0/mod.ts";
+
+// Imported dynamically inside createBlog to avoid an init-time cycle:
+// Blog -> feedFetch -> Post -> ListBlog -> Blog.
+const triggerFetch = async (blog: Blog): Promise<void> => {
+  const { fetchAndIngestBlog } = await import("../lib/feedFetch.ts");
+  await fetchAndIngestBlog(blog);
+};
 
 export const BlogSchema = z.object({
   id: z.number(),
@@ -17,6 +23,9 @@ export const BlogSchema = z.object({
   auto_author: z.string().nullable(),
   last_fetched_at: z.coerce.date().nullable(),
   last_published_at: z.coerce.date().nullable(),
+  // .nullish() because joinjs-based projections in List.ts don't select this
+  // column, so reassembled blog objects arrive with `last_modified_at: undefined`.
+  last_modified_at: z.coerce.date().nullish(),
   created_at: z.coerce.date(),
   posts_last_month: z.number().nullable(),
 });
@@ -57,28 +66,6 @@ export const getBlogByUrl = async (url: string): Promise<Blog | null> => {
   return await queryOne<
     Blog
   >`SELECT * FROM blogs WHERE feed_url = ${sanitizedUrl} OR site_url = ${sanitizedUrl}`;
-};
-
-// TODO: DRY this (cf. main.ts)
-const sendBlogToQueue = async (blog: Blog): Promise<void> => {
-  // Send a message to the feed queue with the new feed to fetch its posts
-  const connection = await connect({
-    hostname: Deno.env.get("RABBITMQ_HOST") || "localhost",
-    username: Deno.env.get("RABBITMQ_USER") || "guest",
-    password: Deno.env.get("RABBITMQ_PASSWORD") || "guest",
-  });
-  const channel = await connection.openChannel();
-  await channel.declareQueue({
-    queue: "feed_queue",
-    durable: true,
-  });
-  await channel.publish(
-    { routingKey: "feed_queue" },
-    { contentType: "application/json" },
-    new TextEncoder().encode(JSON.stringify(blog)),
-  );
-  console.log("Feed added to queue for fetching");
-  await connection.close();
 };
 
 function isProbablyFeed(content: string): boolean {
@@ -148,7 +135,9 @@ export const createBlog = async (blog: CreateBlog): Promise<Blog | null> => {
     const existingBlog = await getBlogByUrl(feedUrl);
     if (existingBlog) {
       console.log("Blog already exists in database");
-      await sendBlogToQueue(existingBlog);
+      triggerFetch(existingBlog).catch((e) =>
+        console.error(`[createBlog] re-fetch failed for ${feedUrl}:`, e)
+      );
       return existingBlog;
     }
     const res = await fetch(feedUrl);
@@ -184,7 +173,9 @@ export const createBlog = async (blog: CreateBlog): Promise<Blog | null> => {
       throw new Error("Failed to create blog");
     }
 
-    await sendBlogToQueue(newBlog);
+    triggerFetch(newBlog).catch((e) =>
+      console.error(`[createBlog] initial fetch failed for ${feedUrl}:`, e)
+    );
 
     return newBlog;
   } catch (e: unknown) {
@@ -236,6 +227,13 @@ const updateBlogLastPublishedAt = async (id: number): Promise<void> => {
             WHERE blog_id = ${id}
         )
         WHERE id = ${id}`;
+};
+
+export const updateBlogLastModifiedAt = async (
+  id: number,
+  lastModifiedAt: Date,
+): Promise<void> => {
+  await query`UPDATE blogs SET last_modified_at = ${lastModifiedAt.toISOString()} WHERE id = ${id}`;
 };
 
 export const updateBlogStats = async (blogId: number): Promise<void> => {

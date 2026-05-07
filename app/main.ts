@@ -4,16 +4,13 @@ import client from "./routes/client.ts";
 import lists from "./routes/lists.ts";
 import { initDB } from "./lib/db.ts";
 import api from "./routes/api.ts";
-import { connect } from "https://deno.land/x/amqp/mod.ts";
 import { User } from "./models/User.ts";
 import posts from "./routes/posts.ts";
 import { Flash } from "./lib/flash.ts";
 import users from "./routes/users.ts";
 import { serveStatic } from "hono/deno";
-import { broadcastNewPost } from "./lib/websockets.ts";
-import { getAllListsContainingBlog } from "./models/List.ts";
-import z from "https://deno.land/x/zod@v3.23.8/index.ts";
 import billing from "./routes/billing.ts";
+import { startPoller } from "./lib/poller.ts";
 
 declare module "hono" {
   interface ContextVariableMap {
@@ -25,81 +22,11 @@ declare module "hono" {
 }
 
 initDB();
-
-// AMQP queues
-const PostQueuePayloadSchema = z.object({
-  blog_id: z.number(),
-  title: z.string(),
-  content: z.string(),
-  url: z.string(),
-  published_at: z.coerce.date(),
-  guid: z.string(),
-});
-
-async function consumePostQueue() {
-  const MAX_DELAY = 30_000;
-  let delay = 1_000;
-
-  while (true) {
-    try {
-      console.log("[AMQP] Connecting to RabbitMQ...");
-      const connection = await connect({
-        hostname: Deno.env.get("RABBITMQ_HOST") || "localhost",
-        username: Deno.env.get("RABBITMQ_USER") || "guest",
-        password: Deno.env.get("RABBITMQ_PASSWORD") || "guest",
-      });
-      const channel = await connection.openChannel();
-      await channel.declareQueue({
-        queue: "post_queue",
-        durable: true,
-      });
-
-      console.log("[AMQP] Connected, consuming post_queue");
-      delay = 1_000;
-
-      await channel.consume(
-        { queue: "post_queue" },
-        async (args, _props, data) => {
-          const response = PostQueuePayloadSchema.safeParse(
-            JSON.parse(new TextDecoder().decode(data)),
-          );
-          if (!response.success) {
-            console.error("[AMQP:post_queue] Invalid payload", response.error);
-            await channel.ack({ deliveryTag: args.deliveryTag });
-            return;
-          }
-          const body = response.data;
-          const lists = await getAllListsContainingBlog(body.blog_id);
-          broadcastNewPost(lists);
-          console.log(`[AMQP:post_queue] Post broadcast: ${body.title}`);
-          await channel.ack({ deliveryTag: args.deliveryTag });
-        },
-      );
-
-      await connection.closed();
-      console.warn("[AMQP] Connection closed, reconnecting...");
-    } catch (e) {
-      console.error(`[AMQP] Error: ${e}. Retrying in ${delay / 1000}s...`);
-    }
-
-    await new Promise((r) => setTimeout(r, delay));
-    delay = Math.min(delay * 2, MAX_DELAY);
-  }
-}
-
-consumePostQueue();
+startPoller();
 
 const app = new Hono();
 
-app.get("/health", (c) => {
-  const accept = c.req.header("Accept") || "";
-  if (accept.includes("application/openmetrics-text") || accept.includes("text/plain")) {
-    return c.text("# HELP app_healthy Whether the app is healthy\n# TYPE app_healthy gauge\napp_healthy 1\n# EOF\n", 200, {
-      "Content-Type": "application/openmetrics-text; version=1.0.0; charset=utf-8",
-    });
-  }
-  return c.json({ status: "ok" });
-});
+app.get("/health", (c) => c.json({ status: "ok" }));
 
 app.use("/static/*", serveStatic({ root: "./" }));
 

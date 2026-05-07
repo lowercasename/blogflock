@@ -8,9 +8,6 @@ services:
     volumes:
       - ./app:/app
       - ./db:/db
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "deno", "eval", "const r = await fetch('http://localhost:8021/health'); if (!r.ok) Deno.exit(1);"]
@@ -18,10 +15,10 @@ services:
       timeout: 5s
       retries: 3
     deploy:
-      replicas: 2
+      replicas: 1
       resources:
         limits:
-          memory: 512M
+          memory: 768M
         reservations:
           memory: 256M
 
@@ -56,117 +53,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  feed-worker:
-    build:
-      context: ./feed-scraper
-      dockerfile: Dockerfile.worker
-    volumes:
-      - ./.env:/app/.env
-    environment:
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8090/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "8090-8093:8090"
-    deploy:
-      replicas: 4
-
-  feed-sender:
-    container_name: blogflock-feed-sender
-    build:
-      context: ./feed-scraper
-      dockerfile: Dockerfile.sender
-    volumes:
-      - ./.env:/app/.env
-    environment:
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_PORT=5672
-      - API_URL=${API_URL}
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      app:
-        condition: service_started
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8088/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "8088:8080"
-
-  rabbitmq:
-    container_name: blogflock-rabbitmq
-    image: rabbitmq:4-management-alpine
-    ports:
-      - "5672:5672"   # AMQP port
-      - "15672:15672" # Management UI port
-    environment:
-      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
-      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  prometheus:
-    container_name: blogflock-prometheus
-    image: prom/prometheus:latest
-    volumes:
-      - ./prometheus:/etc/prometheus
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    restart: unless-stopped
-    depends_on:
-      - feed-sender
-
-  alertmanager:
-    container_name: blogflock-alertmanager
-    image: prom/alertmanager:latest
-    volumes:
-      - ./alertmanager:/etc/alertmanager
-    ports:
-      - "9093:9093"
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-    restart: unless-stopped
-
-  grafana:
-    container_name: blogflock-grafana
-    image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-    restart: unless-stopped
-    depends_on:
-      - prometheus
-
 volumes:
-  rabbitmq_data:
-  prometheus_data:
-  grafana_data:
   caddy_data:
   caddy_config:
   postgres_data:

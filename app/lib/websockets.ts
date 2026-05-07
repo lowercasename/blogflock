@@ -21,7 +21,7 @@ export function broadcastNewPost(
       if (ws.readyState === WebSocket.OPEN) {
         try {
           ws.send(
-            NewPostsNotification({ list, display: true })
+            NewPostsNotification({ list, display: true, type: "posts" })
               .toString(),
           );
         } catch (error) {

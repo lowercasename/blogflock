@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine-2.1.2
+FROM denoland/deno:alpine-2.5.1
 
 # Create and set permissions for deno directories
 RUN mkdir -p /deno-dir && \

@@ -4,6 +4,7 @@ import { parseFeed } from "https://deno.land/x/rss@1.1.1/mod.ts";
 import feedFinder from "npm:feed-finder";
 import { encode } from "../lib/hashids.ts";
 import { sanitizeUrl } from "../lib/url.ts";
+import { decodeEntityEncodedHtml } from "../lib/text.ts";
 
 // Imported dynamically inside createBlog to avoid an init-time cycle:
 // Blog -> feedFetch -> Post -> ListBlog -> Blog.
@@ -157,7 +158,9 @@ export const createBlog = async (blog: CreateBlog): Promise<Blog | null> => {
                 ${feedUrl},
                 ${sanitizeUrl(feed.links?.[0], true) || null},
                 ${feed.title?.value || null},
-                ${feed.description || null},
+                ${
+      feed.description ? decodeEntityEncodedHtml(feed.description) : null
+    },
                 ${feed.image?.url || null},
                 ${feed.author?.name || null}
             )

@@ -8,6 +8,7 @@
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/bytes@^1.0.2": "1.0.4",
     "jsr:@std/encoding@*": "1.0.5",
+    "jsr:@std/html@1": "1.0.7",
     "jsr:@std/internal@^1.0.12": "1.0.13",
     "jsr:@std/io@*": "0.225.0",
     "jsr:@std/io@0.224.9": "0.224.9",
@@ -49,6 +50,9 @@
     },
     "@std/encoding@1.0.5": {
       "integrity": "ecf363d4fc25bd85bd915ff6733a7e79b67e0e7806334af15f4645c569fefc04"
+    },
+    "@std/html@1.0.7": {
+      "integrity": "175c818905a6e75743c69c251395e273d82698e58cfe7dd76268d70e28b8d8fe"
     },
     "@std/internal@1.0.13": {
       "integrity": "2f9546691d4ac2d32859c82dff284aaeac980ddeca38430d07941e7e288725c0"

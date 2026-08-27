@@ -156,6 +156,39 @@ export interface TestEntry {
   content?: string;
 }
 
+// Build a minimal RSS 2.0 feed. `description` is emitted verbatim, so pass
+// it entity-encoded ("&lt;p&gt;…") or CDATA-wrapped to exercise both ways
+// real feeds ship HTML.
+export interface RssTestItem {
+  title: string;
+  link: string;
+  pubDate: string;
+  description: string;
+}
+
+export const rssFeed = (
+  feedTitle: string,
+  items: RssTestItem[],
+): string => {
+  const renderItem = (i: RssTestItem) => `
+    <item>
+      <title>${i.title}</title>
+      <link>${i.link}</link>
+      <guid isPermaLink="true">${i.link}</guid>
+      <pubDate>${i.pubDate}</pubDate>
+      <description>${i.description}</description>
+    </item>`;
+  return `<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>${feedTitle}</title>
+    <link>http://example.test/</link>
+    <description>${feedTitle}</description>
+    ${items.map(renderItem).join("\n")}
+  </channel>
+</rss>`;
+};
+
 export const atomFeed = (
   feedTitle: string,
   entries: TestEntry[],

@@ -18,6 +18,7 @@ import {
   atomFeed,
   FeedServer,
   resetDb,
+  rssFeed,
   seedBlog,
   seedList,
   seedUser,
@@ -232,6 +233,61 @@ Deno.test(
       const posts = await postsForBlog(blogId);
       assertEquals(posts.length, 1);
       assertEquals(posts[0].title, "Brand New");
+    });
+  },
+);
+
+// Regression tests for issue #13: deno-rss wraps non-CDATA <description>
+// fields in literal CDATA before parsing, so entity-encoded HTML (valid
+// RSS) was stored still-encoded and rendered as visible tag soup.
+Deno.test(
+  "poller: entity-encoded RSS description is decoded to HTML",
+  async () => {
+    const xml = rssFeed("Entity Encoded", [
+      {
+        title: "Encoded Post",
+        link: "http://example.test/encoded",
+        pubDate: "Tue, 01 Apr 2025 10:00:00 GMT",
+        description: "&lt;p&gt;Hello &amp;amp; welcome&lt;/p&gt;" +
+          "&lt;style&gt;@font-face{font-family:Foo}&lt;/style&gt;",
+      },
+    ]);
+    await withFeedTest({ "/feed.xml": xml }, async ({ seedAndFetch }) => {
+      const { blogId, result } = await seedAndFetch("/feed.xml");
+      assertEquals(result.newPosts, 1);
+      const rows = await query<{ content: string }>`
+        SELECT content FROM posts WHERE blog_id = ${blogId}
+      `;
+      assertEquals(
+        rows[0].content,
+        "<p>Hello &amp; welcome</p><style>@font-face{font-family:Foo}</style>",
+      );
+    });
+  },
+);
+
+Deno.test(
+  "poller: CDATA RSS description is stored as-is, not decoded again",
+  async () => {
+    const xml = rssFeed("CDATA Feed", [
+      {
+        title: "CDATA Post",
+        link: "http://example.test/cdata",
+        pubDate: "Tue, 01 Apr 2025 10:00:00 GMT",
+        description:
+          "<![CDATA[<p>Fish &amp; chips, and a literal &lt;tag&gt;</p>]]>",
+      },
+    ]);
+    await withFeedTest({ "/feed.xml": xml }, async ({ seedAndFetch }) => {
+      const { blogId, result } = await seedAndFetch("/feed.xml");
+      assertEquals(result.newPosts, 1);
+      const rows = await query<{ content: string }>`
+        SELECT content FROM posts WHERE blog_id = ${blogId}
+      `;
+      assertEquals(
+        rows[0].content,
+        "<p>Fish &amp; chips, and a literal &lt;tag&gt;</p>",
+      );
     });
   },
 );

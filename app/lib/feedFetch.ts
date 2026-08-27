@@ -6,6 +6,7 @@ import {
 } from "../models/Blog.ts";
 import { createPost, generatePostGuid, getPostByGuid } from "../models/Post.ts";
 import { getAllListsContainingBlog } from "../models/List.ts";
+import { decodeEntityEncodedHtml } from "./text.ts";
 import { broadcastNewPost } from "./websockets.ts";
 
 const FETCH_TIMEOUT_MS = 30_000;
@@ -139,12 +140,13 @@ export const fetchAndIngestBlog = async (
 
     const title = entry.title?.value ?? "";
     const url = entry.links?.[0]?.href ?? "";
-    const content =
+    const content = decodeEntityEncodedHtml(
       // deno-lint-ignore no-explicit-any
       (entry as any).content?.value ??
         // deno-lint-ignore no-explicit-any
         (entry as any).description?.value ??
-        "";
+        "",
+    );
     const rawGuid = entry.id ?? undefined;
 
     const guid = await generatePostGuid({

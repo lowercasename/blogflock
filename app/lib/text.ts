@@ -1,6 +1,7 @@
 import { DOMParser, Element, Node } from "jsr:@b-fuze/deno-dom";
 import * as ammonia from "https://deno.land/x/ammonia@0.3.1/mod.ts";
 import { encodeHex } from "jsr:@std/encoding/hex";
+import { unescape } from "jsr:@std/html@1/entities";
 import markdownit from "npm:markdown-it";
 
 await ammonia.init();
@@ -130,6 +131,18 @@ export function createExcerpt(html: string, wordCount = 50): string {
   }
 
   return rootContainer.innerHTML;
+}
+
+// deno-rss (through at least 1.1.3) wraps every non-CDATA <description> in
+// literal CDATA before parsing, so feeds that encode their HTML (which is valid
+// RSS) reach us with the XML entities still encoded. Feeds that use
+// CDATA arrive already decoded and must NOT be decoded
+// again, so we decode when tags appear only in encoded form.
+export function decodeEntityEncodedHtml(value: string): string {
+  if (value.includes("<") || !value.includes("&lt;")) {
+    return value;
+  }
+  return unescape(value);
 }
 
 // From: https://www.codemzy.com/blog/make-word-plural-javascript

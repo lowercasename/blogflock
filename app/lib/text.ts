@@ -6,9 +6,14 @@ import markdownit from "npm:markdown-it";
 
 await ammonia.init();
 
+// Control the number of images displayed.
+const MAX_EXCERPT_IMAGES = 2;
+const IMAGE_WORD_COST = 15;
+
 /**
  * Extract an excerpt from HTML content with approximately the specified word count.
  * This function tries to keep anchor tags intact even if they exceed the word count.
+ * At most MAX_EXCERPT_IMAGES images are kept, each costing IMAGE_WORD_COST words.
  * @param html The HTML content to extract from
  * @param wordCount The target word count for the excerpt (default: 50)
  * @returns The HTML excerpt
@@ -34,6 +39,7 @@ export function createExcerpt(html: string, wordCount = 50): string {
   // State
   let currentWordCount = 0;
   let excerptComplete = false;
+  let imageCount = 0;
 
   function walkNode(node: Node, parentNode: Node, isAnchor = false): void {
     // Fully process anchor tags, even if over word count
@@ -81,7 +87,19 @@ export function createExcerpt(html: string, wordCount = 50): string {
       const element = node as Element;
       const tagName = element.tagName.toLowerCase();
 
-      if (["img", "br", "hr"].includes(tagName)) {
+      if (tagName === "img") {
+        // We check excerptComplete again because images inside
+        // anchors would otherwise skip it because isAnchor is skipped.
+        if (excerptComplete || imageCount >= MAX_EXCERPT_IMAGES) {
+          return;
+        }
+        imageCount++;
+        currentWordCount += IMAGE_WORD_COST;
+        parentNode.appendChild(element.cloneNode());
+        return;
+      }
+
+      if (["br", "hr"].includes(tagName)) {
         parentNode.appendChild(element.cloneNode());
         return;
       }
@@ -168,10 +186,10 @@ const md = markdownit({
 // deno-lint-ignore no-explicit-any
 const defaultRender = md.renderer.rules.link_open ||
   // deno-lint-ignore no-explicit-any
-  function (tokens: any, idx: any, options: any, env: any, self: any) {
+  function(tokens: any, idx: any, options: any, env: any, self: any) {
     return self.renderToken(tokens, idx, options);
   };
-md.renderer.rules.link_open = function (
+md.renderer.rules.link_open = function(
   // deno-lint-ignore no-explicit-any
   tokens: any,
   // deno-lint-ignore no-explicit-any

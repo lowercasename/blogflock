@@ -17,7 +17,13 @@
     @apply mb-2 text-gray-800;
   }
   img {
-    @apply mb-2 max-w-full;
+    /* The max-height equals the feed column's max width (48rem, or the
+       viewport on smaller screens), so a landscape or square image —
+       whose rendered height never exceeds its width — can never hit it.
+       Only portrait images are scaled down, to at worst a square
+       footprint (issue #12). w-auto preserves aspect ratio when the
+       height cap binds. */
+    @apply mb-2 max-w-full w-auto max-h-[min(48rem,100vw)] mx-auto;
   }
   a {
     @apply font-semibold text-gray-900 underline hover:text-gray-800;

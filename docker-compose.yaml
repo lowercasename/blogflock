@@ -1,4 +1,18 @@
 services:
+  caddy:
+    build: ./caddy
+    container_name: blogflock-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./caddy/data:/data
+      - ./caddy/config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
   app:
     build:
       context: ./app
@@ -10,35 +24,14 @@ services:
       - ./db:/db
     restart: unless-stopped
     healthcheck:
-      test: [
-        "CMD",
-        "deno",
-        "eval",
-        "const r = await fetch('http://localhost:8021/health'); if (!r.ok) Deno.exit(1);",
-      ]
+      test: ["CMD", "deno", "eval", "const r = await fetch('http://localhost:8021/health'); if (!r.ok) Deno.exit(1);"]
       interval: 10s
       timeout: 5s
       retries: 3
     deploy:
-      replicas: 1
       resources:
         limits:
           memory: 768M
-        reservations:
-          memory: 256M
-
-  caddy:
-    container_name: blogflock-caddy
-    image: caddy:2-alpine
-    ports:
-      - "8021:80"
-    volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - app
-    restart: unless-stopped
 
   postgres:
     image: postgres:17-alpine
@@ -47,18 +40,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5400:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
-
-volumes:
-  caddy_data:
-  caddy_config:
-  postgres_data:

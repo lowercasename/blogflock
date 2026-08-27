@@ -96,6 +96,10 @@ export function createExcerpt(html: string, wordCount = 50): string {
         imageCount++;
         currentWordCount += IMAGE_WORD_COST;
         parentNode.appendChild(element.cloneNode());
+        // Stop at the final image so captions for dropped images can't trail it
+        if (imageCount >= MAX_EXCERPT_IMAGES) {
+          excerptComplete = true;
+        }
         return;
       }
 
@@ -148,6 +152,20 @@ export function createExcerpt(html: string, wordCount = 50): string {
     walkNode(node, rootContainer);
   }
 
+  // Prune wrappers left visually empty by truncation
+  for (const el of Array.from(rootContainer.querySelectorAll("*"))) {
+    const element = el as Element;
+    if (["img", "br", "hr"].includes(element.tagName.toLowerCase())) {
+      continue;
+    }
+    if (
+      !element.querySelector("img") &&
+      (element.textContent ?? "").trim() === ""
+    ) {
+      element.remove();
+    }
+  }
+
   return rootContainer.innerHTML;
 }
 
@@ -186,10 +204,10 @@ const md = markdownit({
 // deno-lint-ignore no-explicit-any
 const defaultRender = md.renderer.rules.link_open ||
   // deno-lint-ignore no-explicit-any
-  function(tokens: any, idx: any, options: any, env: any, self: any) {
+  function (tokens: any, idx: any, options: any, env: any, self: any) {
     return self.renderToken(tokens, idx, options);
   };
-md.renderer.rules.link_open = function(
+md.renderer.rules.link_open = function (
   // deno-lint-ignore no-explicit-any
   tokens: any,
   // deno-lint-ignore no-explicit-any

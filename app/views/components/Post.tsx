@@ -76,7 +76,8 @@ export const Post = ({
             <div className="flex items-center gap-2">
               <Badge icon={<ClockIcon />} size="sm">
                 {post.list_blog.blog.posts_last_month}{" "}
-                {pluralize(post.list_blog.blog.posts_last_month ?? 0, "post")}{" "}
+                {pluralize(post.list_blog.blog.posts_last_month ?? 0, "post")}
+                {" "}
                 last month
               </Badge>
               <FeedBadge feedUrl={post.list_blog.blog.feed_url} />
@@ -89,7 +90,9 @@ export const Post = ({
       </main>
       <footer class="grid grid-cols-[1fr_auto] gap-2">
         <div class="pl-4 py-3">
-          {post.list_blog && <ListNameAndAuthorBadge list={post.list_blog.list} />}
+          {post.list_blog && (
+            <ListNameAndAuthorBadge list={post.list_blog.list} />
+          )}
         </div>
         {hasSubscription && (
           <div class="border-l border-gray-200">
@@ -100,12 +103,12 @@ export const Post = ({
                   ? "text-orange-400 bg-orange-50 hover:bg-orange-100"
                   : "text-gray-300 hover:bg-gray-50 "
               }`}
-              hx-post={
-                !post.is_bookmarked ? `/posts/${post.id}/bookmark` : undefined
-              }
-              hx-delete={
-                post.is_bookmarked ? `/posts/${post.id}/bookmark` : undefined
-              }
+              hx-post={!post.is_bookmarked
+                ? `/posts/${post.id}/bookmark`
+                : undefined}
+              hx-delete={post.is_bookmarked
+                ? `/posts/${post.id}/bookmark`
+                : undefined}
               hx-swap="outerHTML"
               hx-target={`#post-${post.id}`}
             >

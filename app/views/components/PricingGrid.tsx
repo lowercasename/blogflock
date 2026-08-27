@@ -30,9 +30,11 @@ export default function PricingGrid({
               with unlimited blogs in each
             </li>
             <li>Follow lists created by others</li>
-            {/* <li>
+            {
+              /* <li>
               View short blog post previews
-            </li> */}
+            </li> */
+            }
           </ul>
           {freeTierLink && (
             <div class="mt-auto">
@@ -54,16 +56,19 @@ export default function PricingGrid({
           <ul class="space-y-2 divide-y divide-gray-200 text-center text-balance mb-5">
             <li>
               Create{" "}
-              <strong class="font-semibold text-orange-700">unlimited</strong>{" "}
+              <strong class="font-semibold text-orange-700">unlimited</strong>
+              {" "}
               lists
             </li>
-            {/* <li>
+            {
+              /* <li>
               View{" "}
               <strong class="font-semibold text-orange-700">
                 full blog posts
               </strong>{" "}
               directly in BlogFlock
-            </li> */}
+            </li> */
+            }
             <li>
               <strong class="font-semibold text-orange-700">
                 Bookmark posts

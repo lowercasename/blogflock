@@ -15,6 +15,9 @@
     "test:integration": "bash test/run.sh",
     "check": "deno check main.ts"
   },
+  "fmt": {
+    "exclude": ["static/"]
+  },
   "compilerOptions": {
     "jsx": "precompile",
     "jsxImportSource": "hono/jsx"

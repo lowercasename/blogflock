@@ -14,7 +14,8 @@ interface HTMLLayoutProps {
 }
 
 const HTMLLayout = (props: HTMLLayoutProps) =>
-  html`<!DOCTYPE html>
+  html`
+    <!DOCTYPE html>
     <html>
       <head>
         <title>BlogFlock</title>
@@ -31,7 +32,8 @@ const HTMLLayout = (props: HTMLLayoutProps) =>
       >
         ${props.children}
       </body>
-    </html>`;
+    </html>
+  `;
 
 export function BaseLayout({
   loggedInUser,

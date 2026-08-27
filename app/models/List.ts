@@ -180,9 +180,9 @@ export const getCreatedListsByUserId = async (
   userId: number,
 ): Promise<List[]> => {
   const { rows } = await db.queryObject(
-    listQuery
-    + " WHERE l.user_id = $1"
-    + " ORDER BY l.name ASC",
+    listQuery +
+      " WHERE l.user_id = $1" +
+      " ORDER BY l.name ASC",
     [userId],
   );
   return await buildListsResponse(rows) || [];
@@ -192,8 +192,8 @@ export const getAllListsContainingBlog = async (
   blogId: number,
 ): Promise<List[]> => {
   const { rows } = await db.queryObject(
-    listQuery + " WHERE lb.blog_id = $1"
-    + " ORDER BY l.name ASC",
+    listQuery + " WHERE lb.blog_id = $1" +
+      " ORDER BY l.name ASC",
     [blogId],
   );
   return await buildListsResponse(rows) || [];
@@ -203,10 +203,10 @@ export const getFollowedListsByUserId = async (
   userId: number,
 ): Promise<List[]> => {
   const { rows } = await db.queryObject(
-    "WITH followed_lists AS (SELECT DISTINCT list_id FROM list_followers WHERE user_id = $1)"
-    + listQuery
-    + " WHERE l.id IN (SELECT list_id FROM followed_lists)"
-    + " ORDER BY l.name ASC",
+    "WITH followed_lists AS (SELECT DISTINCT list_id FROM list_followers WHERE user_id = $1)" +
+      listQuery +
+      " WHERE l.id IN (SELECT list_id FROM followed_lists)" +
+      " ORDER BY l.name ASC",
     [userId],
   );
   return await buildListsResponse(rows) || [];
@@ -291,8 +291,8 @@ export const getAllListsByUserId = async (
   userId: number,
 ): Promise<List[]> => {
   const { rows } = await db.queryObject(
-    listQuery + " WHERE l.user_id = $1"
-      + " ORDER BY l.name ASC",
+    listQuery + " WHERE l.user_id = $1" +
+      " ORDER BY l.name ASC",
     [userId],
   );
   const lists = await buildListsResponse(rows);

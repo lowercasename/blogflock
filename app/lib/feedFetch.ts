@@ -4,11 +4,7 @@ import {
   updateBlogLastModifiedAt,
   updateBlogStats,
 } from "../models/Blog.ts";
-import {
-  createPost,
-  generatePostGuid,
-  getPostByGuid,
-} from "../models/Post.ts";
+import { createPost, generatePostGuid, getPostByGuid } from "../models/Post.ts";
 import { getAllListsContainingBlog } from "../models/List.ts";
 import { broadcastNewPost } from "./websockets.ts";
 
@@ -76,7 +72,9 @@ export const fetchAndIngestBlog = async (
     // failed updateBlogStats (e.g. last_fetched_at not advancing) would
     // re-fetch this feed every tick forever with no visible signal.
     await updateBlogStats(blog.id).catch((e) =>
-      console.error(`[feed] updateBlogStats failed for 304 ${blog.feed_url}: ${e}`)
+      console.error(
+        `[feed] updateBlogStats failed for 304 ${blog.feed_url}: ${e}`,
+      )
     );
     return { newPosts: 0, notModified: true, skipped: false };
   }

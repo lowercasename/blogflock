@@ -34,7 +34,9 @@ export const Badge = ({
   action?: any;
 }>) => (
   <span
-    class={`inline-flex items-center gap-1 rounded-full ${colorToClasses[color]} ${sizeToClasses[size]} ${className}`}
+    class={`inline-flex items-center gap-1 rounded-full ${
+      colorToClasses[color]
+    } ${sizeToClasses[size]} ${className}`}
   >
     {icon && <div class={`${sizeToIconSize[size]}`}>{icon}</div>}
     <span>{children}</span>

@@ -84,4 +84,3 @@ export const getAuthenticatedUser = async (c: Context) => {
     return null;
   }
 };
-

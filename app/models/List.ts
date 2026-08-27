@@ -5,8 +5,8 @@ import joinjs from "npm:join-js";
 import { PublicUserFieldsSchema } from "./User.ts";
 import { shuffleArray } from "../lib/util.ts";
 import { ListBlogSchema } from "./ListBlog.ts";
-import { Atom } from "jsr:@feed/feed";
 import { getPostsForListsIds } from "./Post.ts";
+import { create } from "npm:xmlbuilder2";
 import { markdownToHtml } from "../lib/text.ts";
 import { SortValue } from "../views/ListSearchPage.tsx";
 
@@ -341,38 +341,36 @@ export const deleteList = async (id: number): Promise<boolean> => {
 };
 
 export const listToAtomFeed = async (list: List): Promise<string> => {
-  const atomFeed = new Atom({
-    title: `${list.name} - BlogFlock`,
-    description: list.description || "",
-    link: `https://blogflock.com/lists/${list.hash_id}`,
-    authors: [
-      {
-        name: list.list_blogs?.map((lb) => lb.author || lb.title)
-          .filter((author) => author)
-          .join(", ") || "",
-        email: "",
-      },
-    ],
-    id: `https://blogflock.com/lists/${list.hash_id}`,
-    generator: "BlogFlock",
-  });
+  const listUrl = `https://blogflock.com/list/${list.hash_id}`;
 
   // Retrieve the 20 most recent posts from the list
   const [posts] = await getPostsForListsIds([list.id], 20, 0);
-  posts.forEach((post) => {
-    const blogTitle = post.list_blog?.title ?? "";
-    atomFeed.addItem({
-      title: `${post.title} - ${blogTitle}`,
-      link: post.url,
-      id: post.guid,
-      updated: post.published_at,
-      summary: "",
-      content: {
-        body: post.content,
-        type: "html",
-      },
-    });
-  });
+  const updated = posts[0]?.published_at ?? new Date();
 
-  return atomFeed.build();
+  return create({ version: "1.0", encoding: "UTF-8" }, {
+    feed: {
+      "@xmlns": "http://www.w3.org/2005/Atom",
+      title: `${list.name} - BlogFlock`,
+      subtitle: list.description || "",
+      link: [
+        { "@rel": "alternate", "@href": listUrl },
+        { "@rel": "self", "@href": `${listUrl}/feed.xml` },
+      ],
+      id: listUrl,
+      updated: updated.toISOString(),
+      generator: "BlogFlock",
+      author: { name: list.user.username },
+      entry: posts.map((post) => {
+        const blogTitle = post.list_blog?.title ?? "";
+        return {
+          title: `${post.title} - ${blogTitle}`,
+          link: { "@href": post.url },
+          id: post.guid,
+          updated: post.published_at.toISOString(),
+          author: { name: post.list_blog?.author || blogTitle },
+          content: { "@type": "html", "#": post.content },
+        };
+      }),
+    },
+  }).end({ prettyPrint: true });
 };

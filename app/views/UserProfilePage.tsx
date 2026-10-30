@@ -102,7 +102,9 @@ export function UserProfilePage(
               a <Link href="/billing">BlogFlock supporter</Link>.
             </p>
           )}
-          {(isOwner && createdLists.length < 5) && <CreateListForm />}
+          {(isOwner &&
+            (loggedInUser.blogflock_supporter_subscription_active ||
+              createdLists.length < 5)) && <CreateListForm />}
         </Card>
         <Card title={`Lists followed by ${user.username}`}>
           <Stack
